@@ -1,0 +1,341 @@
+package com.compi1.proyecto1.analizadores;
+
+import java_cup.runtime.*;
+import java.util.ArrayList;
+import java.util.List;
+import com.compi1.proyecto1.modelos.*;
+import com.compi1.proyecto1.utils.ManejadorErrores;
+
+/* --- CONFIGURACIÓN DEL PARSER --- */
+parser code {:
+    public String revertirEmojis(String texto) {
+        if (texto == null) return "";
+        String t = texto;
+        t = t.replace("@[:heart:]", "❤️");
+        t = t.replace("@[:star:]", "⭐");
+        t = t.replace("@[:smile:]", "😄");
+        t = t.replace("@[:sad:]", "😢");
+        t = t.replace("@[:serious:]", "😐");
+        t = t.replace("@[:cat:]", "🐱");
+        t = t.replace("@[:<<<<33333:]", "😘");
+        return t;
+    }
+
+    public void syntax_error(Symbol s) {
+        String lexema = s.value != null ? s.value.toString() : "Token";
+        ManejadorErrores.agregarError(lexema, s.left, s.right, "Sintáctico PKM", "Estructura de etiqueta incorrecta en el archivo .pkm");
+    }
+
+    public void unrecovered_syntax_error(Symbol s) throws java.lang.Exception {
+        String lexema = s.value != null ? s.value.toString() : "Token";
+        ManejadorErrores.agregarError(lexema, s.left, s.right, "Sintáctico PKM (Fatal)", "El archivo .pkm está gravemente dañado");
+    }
+:}
+
+/* --- DECLARACIÓN DE TERMINALES --- */
+terminal String HASH_TRES, MENOR_QUE, MAYOR_QUE, BARRA, IGUAL, COMA, LLAVE_IZQ, LLAVE_DER;
+terminal String STYLE, SECTION, CONTENT, TABLE, LINE, ELEMENT, OPEN, DROP, SELECT, MULTIPLE;
+terminal String COLOR, BG_COLOR, FONT_FAMILY, TEXT_SIZE, BORDER;
+terminal String VERTICAL, HORIZONTAL, MONO, SANS_SERIF, CURSIVE, DOTTED, DOUBLE_TYPE, COLOR_NAME;
+terminal String META_KEY;
+terminal String NUMERO, CADENA, HEX_COLOR, RGB_COLOR, TEXTO_LIBRE;
+
+/* --- DECLARACIÓN DE NO TERMINALES --- */
+non terminal List<Instruccion> inicio, lista_componentes;
+non terminal Object metadatos, ignorar_meta, token_cualquiera;
+non terminal Instruccion componente;
+non terminal Seccion seccion;
+non terminal Tabla tabla;
+non terminal PreguntaAbierta pregunta_abierta;
+non terminal PreguntaDesplegable pregunta_desplegable;
+non terminal PreguntaSeleccion pregunta_seleccion;
+non terminal PreguntaMultiple pregunta_multiple;
+
+// Estilos (Ya no hay opcional_estilos)
+non terminal Estilo bloque_estilos, lista_estilos;
+non terminal Object[] estilo_item;
+non terminal String valor_color, orientacion, fuente, tipo_linea;
+
+// Listas auxiliares
+non terminal List<List<Instruccion>> lista_lineas;
+non terminal List<Instruccion> linea, lista_elementos_linea, celda;
+non terminal List<Expresion> lista_cadenas_exp, lista_numeros_exp;
+non terminal List<String> lista_cadenas_str;
+
+/* --- REGLA PRINCIPAL --- */
+start with inicio;
+
+inicio ::= metadatos lista_componentes:l {: RESULT = l; :}
+         | lista_componentes:l {: RESULT = l; :} ;
+
+/* --- METADATOS --- */
+metadatos ::= HASH_TRES ignorar_meta HASH_TRES ;
+ignorar_meta ::= ignorar_meta token_cualquiera | /* vacio */ ;
+token_cualquiera ::= META_KEY | TEXTO_LIBRE | NUMERO | CADENA | MENOR_QUE | MAYOR_QUE | BARRA | IGUAL | COMA | LLAVE_IZQ | LLAVE_DER | STYLE | SECTION | CONTENT | TABLE | LINE | ELEMENT | OPEN | DROP | SELECT | MULTIPLE | COLOR | BG_COLOR | FONT_FAMILY | TEXT_SIZE | BORDER | VERTICAL | HORIZONTAL | COLOR_NAME | HEX_COLOR | RGB_COLOR | error ;
+
+/* --- LISTA DE COMPONENTES VISUALES --- */
+lista_componentes ::= lista_componentes:l componente:c {: l.add(c); RESULT = l; :}
+                    | componente:c {: List<Instruccion> l = new ArrayList<>(); l.add(c); RESULT = l; :} ;
+
+componente ::= seccion:s {: RESULT = s; :}
+             | tabla:t {: RESULT = t; :}
+             | pregunta_abierta:p {: RESULT = p; :}
+             | pregunta_desplegable:p {: RESULT = p; :}
+             | pregunta_seleccion:p {: RESULT = p; :}
+             | pregunta_multiple:p {: RESULT = p; :} ;
+
+/* --- 1. SECCIÓN --- */
+seccion ::= MENOR_QUE SECTION IGUAL NUMERO:w COMA NUMERO:h COMA NUMERO:x COMA NUMERO:y COMA orientacion:o MAYOR_QUE
+            bloque_estilos:e
+            MENOR_QUE CONTENT MAYOR_QUE
+            lista_componentes:elems
+            MENOR_QUE BARRA CONTENT MAYOR_QUE
+            MENOR_QUE BARRA SECTION MAYOR_QUE
+            {:
+                Seccion s = new Seccion();
+                s.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                s.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                s.setElementos(elems);
+                s.setEstilo(e);
+                s.setOrientation(o);
+                RESULT = s;
+            :}
+          | MENOR_QUE SECTION IGUAL NUMERO:w COMA NUMERO:h COMA NUMERO:x COMA NUMERO:y COMA orientacion:o MAYOR_QUE
+            MENOR_QUE CONTENT MAYOR_QUE
+            lista_componentes:elems
+            MENOR_QUE BARRA CONTENT MAYOR_QUE
+            MENOR_QUE BARRA SECTION MAYOR_QUE
+            {:
+                Seccion s = new Seccion();
+                s.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                s.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                s.setElementos(elems);
+                s.setOrientation(o);
+                RESULT = s;
+            :} ;
+
+orientacion ::= VERTICAL {: RESULT = "VERTICAL"; :} | HORIZONTAL {: RESULT = "HORIZONTAL"; :} ;
+
+/* --- 2. TABLAS --- */
+tabla ::= MENOR_QUE TABLE MAYOR_QUE
+          bloque_estilos:e
+          MENOR_QUE CONTENT MAYOR_QUE
+          lista_lineas:filas
+          MENOR_QUE BARRA CONTENT MAYOR_QUE
+          MENOR_QUE BARRA TABLE MAYOR_QUE
+          {:
+              Tabla t = new Tabla();
+              t.setFilas(filas);
+              t.setEstilo(e);
+              RESULT = t;
+          :}
+        | MENOR_QUE TABLE MAYOR_QUE
+          MENOR_QUE CONTENT MAYOR_QUE
+          lista_lineas:filas
+          MENOR_QUE BARRA CONTENT MAYOR_QUE
+          MENOR_QUE BARRA TABLE MAYOR_QUE
+          {:
+              Tabla t = new Tabla();
+              t.setFilas(filas);
+              RESULT = t;
+          :} ;
+
+lista_lineas ::= lista_lineas:ll linea:l {: ll.add(l); RESULT = ll; :}
+               | linea:l {: List<List<Instruccion>> ll = new ArrayList<>(); ll.add(l); RESULT = ll; :} ;
+
+linea ::= MENOR_QUE LINE MAYOR_QUE lista_elementos_linea:le MENOR_QUE BARRA LINE MAYOR_QUE {: RESULT = le; :} ;
+
+lista_elementos_linea ::= lista_elementos_linea:le celda:c {: le.addAll(c); RESULT = le; :}
+                        | celda:c {: List<Instruccion> le = new ArrayList<>(); le.addAll(c); RESULT = le; :} ;
+
+celda ::= MENOR_QUE ELEMENT MAYOR_QUE lista_componentes:c MENOR_QUE BARRA ELEMENT MAYOR_QUE {: RESULT = c; :}
+        | MENOR_QUE ELEMENT MAYOR_QUE MENOR_QUE BARRA ELEMENT MAYOR_QUE {: RESULT = new ArrayList<Instruccion>(); :} ;
+
+/* --- 3. PREGUNTA ABIERTA --- */
+pregunta_abierta ::= MENOR_QUE OPEN IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl BARRA MAYOR_QUE
+                     {:
+                         PreguntaAbierta p = new PreguntaAbierta(parser.revertirEmojis(lbl));
+                         p.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                         p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                         RESULT = p;
+                     :}
+                   | MENOR_QUE OPEN IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl MAYOR_QUE
+                     bloque_estilos:e
+                     MENOR_QUE BARRA OPEN MAYOR_QUE
+                     {:
+                         PreguntaAbierta p = new PreguntaAbierta(parser.revertirEmojis(lbl));
+                         p.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                         p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                         p.setEstilo(e);
+                         RESULT = p;
+                     :}
+                   | MENOR_QUE OPEN IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl MAYOR_QUE
+                     MENOR_QUE BARRA OPEN MAYOR_QUE
+                     {:
+                         PreguntaAbierta p = new PreguntaAbierta(parser.revertirEmojis(lbl));
+                         p.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                         p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                         RESULT = p;
+                     :} ;
+
+/* --- 4. PREGUNTA DESPLEGABLE (<drop=...>) --- */
+pregunta_desplegable ::= MENOR_QUE DROP IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_exp:ops LLAVE_DER COMA NUMERO:c BARRA MAYOR_QUE
+                         {:
+                             Expresion correct = null;
+                             if(Double.parseDouble(c) != -1) correct = new Expresion.NumeroLiteral(Double.parseDouble(c));
+                             PreguntaDesplegable p = new PreguntaDesplegable(parser.revertirEmojis(lbl), ops, correct);
+                             p.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                             p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                             RESULT = p;
+                         :}
+                       | MENOR_QUE DROP IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_exp:ops LLAVE_DER COMA NUMERO:c MAYOR_QUE
+                         bloque_estilos:e
+                         MENOR_QUE BARRA DROP MAYOR_QUE
+                         {:
+                             Expresion correct = null;
+                             if(Double.parseDouble(c) != -1) correct = new Expresion.NumeroLiteral(Double.parseDouble(c));
+                             PreguntaDesplegable p = new PreguntaDesplegable(parser.revertirEmojis(lbl), ops, correct);
+                             p.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                             p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                             p.setEstilo(e);
+                             RESULT = p;
+                         :}
+                       | MENOR_QUE DROP IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_exp:ops LLAVE_DER COMA NUMERO:c MAYOR_QUE
+                         MENOR_QUE BARRA DROP MAYOR_QUE
+                         {:
+                             Expresion correct = null;
+                             if(Double.parseDouble(c) != -1) correct = new Expresion.NumeroLiteral(Double.parseDouble(c));
+                             PreguntaDesplegable p = new PreguntaDesplegable(parser.revertirEmojis(lbl), ops, correct);
+                             p.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                             p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                             RESULT = p;
+                         :} ;
+
+/* --- 5. PREGUNTA SELECCIÓN (<select=...>) --- */
+pregunta_seleccion ::= MENOR_QUE SELECT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA NUMERO:c BARRA MAYOR_QUE
+                       {:
+                           Expresion correct = null;
+                           if(Double.parseDouble(c) != -1) correct = new Expresion.NumeroLiteral(Double.parseDouble(c));
+                           PreguntaSeleccion p = new PreguntaSeleccion(parser.revertirEmojis(lbl), ops, correct);
+                           p.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                           p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                           RESULT = p;
+                       :}
+                     | MENOR_QUE SELECT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA NUMERO:c MAYOR_QUE
+                       bloque_estilos:e
+                       MENOR_QUE BARRA SELECT MAYOR_QUE
+                       {:
+                           Expresion correct = null;
+                           if(Double.parseDouble(c) != -1) correct = new Expresion.NumeroLiteral(Double.parseDouble(c));
+                           PreguntaSeleccion p = new PreguntaSeleccion(parser.revertirEmojis(lbl), ops, correct);
+                           p.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                           p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                           p.setEstilo(e);
+                           RESULT = p;
+                       :}
+                     | MENOR_QUE SELECT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA NUMERO:c MAYOR_QUE
+                       MENOR_QUE BARRA SELECT MAYOR_QUE
+                       {:
+                           Expresion correct = null;
+                           if(Double.parseDouble(c) != -1) correct = new Expresion.NumeroLiteral(Double.parseDouble(c));
+                           PreguntaSeleccion p = new PreguntaSeleccion(parser.revertirEmojis(lbl), ops, correct);
+                           p.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                           p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                           RESULT = p;
+                       :} ;
+
+/* --- 6. PREGUNTA MÚLTIPLE (<multiple=...>) --- */
+pregunta_multiple ::= MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA LLAVE_IZQ lista_numeros_exp:corrs LLAVE_DER BARRA MAYOR_QUE
+                      {:
+                          PreguntaMultiple p = new PreguntaMultiple(parser.revertirEmojis(lbl), ops, corrs);
+                          p.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                          p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                          RESULT = p;
+                      :}
+                    | MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA LLAVE_IZQ LLAVE_DER BARRA MAYOR_QUE
+                      {:
+                          PreguntaMultiple p = new PreguntaMultiple(parser.revertirEmojis(lbl), ops, new ArrayList<Expresion>());
+                          p.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                          p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                          RESULT = p;
+                      :}
+                    | MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA LLAVE_IZQ lista_numeros_exp:corrs LLAVE_DER MAYOR_QUE
+                      bloque_estilos:e
+                      MENOR_QUE BARRA MULTIPLE MAYOR_QUE
+                      {:
+                          PreguntaMultiple p = new PreguntaMultiple(parser.revertirEmojis(lbl), ops, corrs);
+                          p.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                          p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                          p.setEstilo(e);
+                          RESULT = p;
+                      :}
+                    | MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA LLAVE_IZQ LLAVE_DER MAYOR_QUE
+                      bloque_estilos:e
+                      MENOR_QUE BARRA MULTIPLE MAYOR_QUE
+                      {:
+                          PreguntaMultiple p = new PreguntaMultiple(parser.revertirEmojis(lbl), ops, new ArrayList<Expresion>());
+                          p.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                          p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                          p.setEstilo(e);
+                          RESULT = p;
+                      :}
+                    | MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA LLAVE_IZQ lista_numeros_exp:corrs LLAVE_DER MAYOR_QUE
+                      MENOR_QUE BARRA MULTIPLE MAYOR_QUE
+                      {:
+                          PreguntaMultiple p = new PreguntaMultiple(parser.revertirEmojis(lbl), ops, corrs);
+                          p.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                          p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                          RESULT = p;
+                      :}
+                    | MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA LLAVE_IZQ LLAVE_DER MAYOR_QUE
+                      MENOR_QUE BARRA MULTIPLE MAYOR_QUE
+                      {:
+                          PreguntaMultiple p = new PreguntaMultiple(parser.revertirEmojis(lbl), ops, new ArrayList<Expresion>());
+                          p.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                          p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                          RESULT = p;
+                      :} ;
+
+/* --- ESTILOS --- */
+bloque_estilos ::= MENOR_QUE STYLE MAYOR_QUE lista_estilos:e MENOR_QUE BARRA STYLE MAYOR_QUE {: RESULT = e; :} ;
+
+lista_estilos ::= lista_estilos:e estilo_item:i
+                  {:
+                      if(i[0].equals("color")) e.setColorTexto((String)i[1]);
+                      else if(i[0].equals("bg")) e.setColorFondo((String)i[1]);
+                      else if(i[0].equals("font")) e.setFamiliaFuente((String)i[1]);
+                      else if(i[0].equals("size")) e.setTamanoTexto(new Expresion.NumeroLiteral(Double.parseDouble((String)i[1])));
+                      RESULT = e;
+                  :}
+                | estilo_item:i
+                  {:
+                      Estilo e = new Estilo();
+                      if(i[0].equals("color")) e.setColorTexto((String)i[1]);
+                      else if(i[0].equals("bg")) e.setColorFondo((String)i[1]);
+                      else if(i[0].equals("font")) e.setFamiliaFuente((String)i[1]);
+                      else if(i[0].equals("size")) e.setTamanoTexto(new Expresion.NumeroLiteral(Double.parseDouble((String)i[1])));
+                      RESULT = e;
+                  :} ;
+
+estilo_item ::= MENOR_QUE COLOR IGUAL valor_color:c BARRA MAYOR_QUE {: RESULT = new Object[]{"color", c}; :}
+              | MENOR_QUE BG_COLOR IGUAL valor_color:c BARRA MAYOR_QUE {: RESULT = new Object[]{"bg", c}; :}
+              | MENOR_QUE FONT_FAMILY IGUAL fuente:f BARRA MAYOR_QUE {: RESULT = new Object[]{"font", f}; :}
+              | MENOR_QUE TEXT_SIZE IGUAL NUMERO:s BARRA MAYOR_QUE {: RESULT = new Object[]{"size", s}; :}
+              | MENOR_QUE BORDER COMA NUMERO:grosor COMA tipo_linea:tipo COMA valor_color:c BARRA MAYOR_QUE {: RESULT = new Object[]{"border", c}; :} ;
+
+valor_color ::= HEX_COLOR:c {: RESULT = c; :}
+              | RGB_COLOR:c {: RESULT = c; :}
+              | COLOR_NAME:c {: RESULT = c; :} ;
+
+fuente ::= MONO {: RESULT = "MONO"; :} | SANS_SERIF {: RESULT = "SANS_SERIF"; :} | CURSIVE {: RESULT = "CURSIVE"; :} ;
+tipo_linea ::= LINE {: RESULT = "LINE"; :} | DOTTED {: RESULT = "DOTTED"; :} | DOUBLE_TYPE {: RESULT = "DOUBLE"; :} ;
+
+/* --- LISTAS AUXILIARES --- */
+lista_cadenas_exp ::= lista_cadenas_exp:l COMA CADENA:c {: l.add(new Expresion.CadenaLiteral(c)); RESULT = l; :}
+                    | CADENA:c {: List<Expresion> l = new ArrayList<>(); l.add(new Expresion.CadenaLiteral(c)); RESULT = l; :} ;
+
+lista_cadenas_str ::= lista_cadenas_str:l COMA CADENA:c {: l.add(c); RESULT = l; :}
+                    | CADENA:c {: List<String> l = new ArrayList<>(); l.add(c); RESULT = l; :} ;
+
+lista_numeros_exp ::= lista_numeros_exp:l COMA NUMERO:n {: l.add(new Expresion.NumeroLiteral(Double.parseDouble(n))); RESULT = l; :}
+                    | NUMERO:n {: List<Expresion> l = new ArrayList<>(); l.add(new Expresion.NumeroLiteral(Double.parseDouble(n))); RESULT = l; :} ;

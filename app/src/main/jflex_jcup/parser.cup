@@ -1,0 +1,536 @@
+package com.compi1.proyecto1.analizadores;
+/* 1. Código de Usuario (Paquetes e importaciones) */
+
+import java_cup.runtime.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import com.compi1.proyecto1.modelos.*;
+
+/* 2. Configuración del Parser y Manejo de Errores */
+parser code {:
+    // Lista global para recolectar errores y mostrarlos en el reporte de Android
+    // public List<MiError> listaErrores = new ArrayList<>();
+
+    // Clase auxiliar para transportar atributos temporales
+    public class AtributoAux {
+        public String nombre;
+        public Object valor;
+        public AtributoAux(String n, Object v) { this.nombre = n; this.valor = v; }
+    }
+
+    public void syntax_error(Symbol s) {
+        String lexema = s.value != null ? s.value.toString() : "Token no reconocido";
+        ManejadorErrores.agregarError(lexema, s.left, s.right, "Sintáctico", "Se esperaba otro componente u orden incorrecto");
+    }
+
+    public void unrecovered_syntax_error(Symbol s) throws java.lang.Exception {
+        String lexema = s.value != null ? s.value.toString() : "Token no reconocido";
+        ManejadorErrores.agregarError(lexema, s.left, s.right, "Sintáctico (Irrecuperable)", "Estructura del código gravemente dañada");
+    }
+:}
+
+/* ==========================================================================
+   DECLARACIÓN DE TERMINALES
+   ========================================================================== */
+terminal SECTION, TABLE, TEXT, OPEN_QUESTION, DROP_QUESTION, SELECT_QUESTION, MULTIPLE_QUESTION;
+terminal TIPO_NUMBER, TIPO_STRING, TIPO_SPECIAL;
+terminal IF, ELSE, WHILE, DO, FOR, IN;
+terminal COLOR_RED, COLOR_BLUE, COLOR_GREEN, COLOR_PURPLE, COLOR_SKY, COLOR_YELLOW, COLOR_BLACK, COLOR_WHITE;
+
+terminal MAS, MENOS, POR, DIVIDIDO, POTENCIA, MODULO;
+terminal MAYOR, MAYOR_IGUAL, MENOR, MENOR_IGUAL, IGUALDAD, DIFERENTE;
+terminal OR, AND, NOT;
+
+terminal PAR_IZQ, PAR_DER, CORCHETE_IZQ, CORCHETE_DER, LLAVE_IZQ, LLAVE_DER;
+terminal COMA, DOS_PUNTOS, ASIGNACION, PUNTO, RANGO, COMODIN, PUNTO_COMA;
+
+terminal WIDTH, HEIGHT, POINTX, POINTY, ORIENTATION, ELEMENTS, STYLES;
+terminal CONTENT, LABEL, OPTIONS, CORRECT, WHO_IS_THAT_POKEMON;
+terminal VERTICAL, HORIZONTAL;
+terminal COLOR, BACKGROUND_COLOR, FONT_FAMILY, TEXT_SIZE, BORDER;
+terminal MONO, SANS_SERIF, CURSIVE, LINE, DOTTED, DOUBLE;
+
+terminal String COLOR_HEX, NUMERO, CADENA, IDENTIFICADOR, ERROR_LEXICO;
+
+/* ==========================================================================
+   DECLARACIÓN DE NO TERMINALES (Con sus tipos de retorno para el AST)
+   ========================================================================== */
+non terminal List<Instruccion> inicio, lista_instrucciones;
+non terminal Instruccion instruccion;
+
+// Variables y Expresiones
+non terminal Instruccion declaracion_variable, asignacion;
+non terminal Expresion expresion;
+
+// Control de Flujo
+non terminal List<Instruccion> sentencias_bloque, lista_instrucciones_bloque;
+non terminal Instruccion sentencia_if, sentencia_while, sentencia_do_while, sentencia_for;
+non terminal List<SentenciaIf> lista_else_if;
+non terminal List<Instruccion> bloque_else;
+non terminal Instruccion actualizacion_for;
+
+// Componentes y Atributos
+non terminal ComponenteVisual elemento;
+non terminal Seccion seccion;
+non terminal Tabla tabla;
+non terminal TextoGeneral texto_general;
+non terminal PreguntaAbierta pregunta_abierta;
+non terminal PreguntaDesplegable pregunta_desplegable;
+non terminal PreguntaSeleccion pregunta_seleccion;
+non terminal PreguntaMultiple pregunta_multiple;
+
+non terminal HashMap<String, Object> lista_atributos_seccion, lista_atributos_pregunta, lista_atributos_tabla;
+non terminal AtributoAux atributo_seccion, atributo_pregunta, atributo_tabla;
+non terminal String orientacion_val;
+non terminal List<Instruccion> bloque_elementos, lista_elementos;
+non terminal Estilo bloque_estilos;
+non terminal List<AtributoAux> lista_estilos;
+non terminal AtributoAux estilo;
+non terminal String valor_color, fuente_val, tipo_borde;
+non terminal Object tupla_borde;
+
+non terminal List<List<Instruccion>> bloque_filas_tabla, lista_filas;
+non terminal List<Instruccion> fila, lista_celdas, celda;
+
+non terminal List<Expresion> bloque_opciones, lista_cadenas_exp;
+non terminal Object bloque_correctas; // Puede devolver Expresion o List<Expresion>
+non terminal List<Expresion> lista_expresiones;
+
+/* ==========================================================================
+   PRECEDENCIAS
+   ========================================================================== */
+precedence left OR, AND;
+precedence right NOT;
+precedence left MAYOR, MAYOR_IGUAL, MENOR, MENOR_IGUAL, IGUALDAD, DIFERENTE;
+precedence left MAS, MENOS;
+precedence left POR, DIVIDIDO, MODULO;
+precedence right POTENCIA;
+
+start with inicio;
+
+/* ==========================================================================
+   REGLAS GRAMATICALES Y ACCIONES SEMÁNTICAS
+   ========================================================================== */
+
+inicio ::= lista_instrucciones:lista {: RESULT = lista; :} ;
+
+lista_instrucciones ::= lista_instrucciones:lista instruccion:i
+                {:
+                    if(i != null) lista.add(i);
+                    RESULT = lista;
+                :}
+                | instruccion:i
+                {:
+                    List<Instruccion> lista = new ArrayList<>();
+                    if(i != null) lista.add(i);
+                    RESULT = lista;
+                :};
+
+instruccion ::= declaracion_variable:d {: RESULT = d; :}
+              | asignacion:a           {: RESULT = a; :}
+              | seccion:s              {: RESULT = s; :}
+              | tabla:t                {: RESULT = t; :}
+              | sentencia_if:i         {: RESULT = i; :}
+              | sentencia_while:w      {: RESULT = w; :}
+              | sentencia_do_while:dw  {: RESULT = dw; :}
+              | sentencia_for:f        {: RESULT = f; :}
+              | error                  {: RESULT = null; :}
+              ;
+
+/* --- Variables e Identificadores --- */
+declaracion_variable ::= TIPO_NUMBER IDENTIFICADOR:id ASIGNACION expresion:e
+            {: RESULT = new DeclaracionVariable("number", id, e); :}
+            | TIPO_STRING IDENTIFICADOR:id ASIGNACION expresion:e
+            {: RESULT = new DeclaracionVariable("string", id, e); :}
+            | TIPO_SPECIAL IDENTIFICADOR:id ASIGNACION expresion:e
+            {: RESULT = new DeclaracionVariable("special", id, e); :}
+            | TIPO_NUMBER IDENTIFICADOR:id
+            {: RESULT = new DeclaracionVariable("number", id, null); :}
+            | TIPO_STRING IDENTIFICADOR:id
+            {: RESULT = new DeclaracionVariable("string", id, null); :}
+            | TIPO_SPECIAL IDENTIFICADOR:id
+            {: RESULT = new DeclaracionVariable("special", id, null); :}
+            ;
+
+asignacion ::= IDENTIFICADOR:id ASIGNACION expresion:e
+            {: RESULT = new AsignacionVariable(id, e); :} ;
+
+/* --- Expresiones --- */
+expresion ::= NUMERO:n
+            {: RESULT = new Expresion.NumeroLiteral(Double.parseDouble(n)); :}
+          | IDENTIFICADOR:id
+            {: RESULT = new Expresion.Variable(id); :}
+          | CADENA:c
+            {: RESULT = new Expresion.CadenaLiteral(c.replace("\"", "")); :}
+          | expresion:izq MAS expresion:der
+            {: RESULT = new Expresion.OperacionAritmetica(izq, "+", der); :}
+          | expresion:izq MENOS expresion:der
+            {: RESULT = new Expresion.OperacionAritmetica(izq, "-", der); :}
+          | expresion:izq POR expresion:der
+            {: RESULT = new Expresion.OperacionAritmetica(izq, "*", der); :}
+          | expresion:izq DIVIDIDO expresion:der
+            {: RESULT = new Expresion.OperacionAritmetica(izq, "/", der); :}
+          | expresion:izq POTENCIA expresion:der
+            {: RESULT = new Expresion.OperacionAritmetica(izq, "^", der); :}
+          | expresion:izq MODULO expresion:der
+            {: RESULT = new Expresion.OperacionAritmetica(izq, "%", der); :}
+          | expresion:izq MAYOR expresion:der
+            {: RESULT = new Expresion.OperacionRelacional(izq, ">", der); :}
+          | expresion:izq MENOR expresion:der
+            {: RESULT = new Expresion.OperacionRelacional(izq, "<", der); :}
+          | expresion:izq MAYOR_IGUAL expresion:der
+            {: RESULT = new Expresion.OperacionRelacional(izq, ">=", der); :}
+          | expresion:izq MENOR_IGUAL expresion:der
+            {: RESULT = new Expresion.OperacionRelacional(izq, "<=", der); :}
+          | expresion:izq IGUALDAD expresion:der
+            {: RESULT = new Expresion.OperacionRelacional(izq, "==", der); :}
+          | expresion:izq DIFERENTE expresion:der
+            {: RESULT = new Expresion.OperacionRelacional(izq, "!!", der); :}
+          | expresion:izq OR expresion:der
+            {: RESULT = new Expresion.OperacionLogica(izq, "||", der); :}
+          | expresion:izq AND expresion:der
+            {: RESULT = new Expresion.OperacionLogica(izq, "&&", der); :}
+          | NOT expresion:e
+            {: RESULT = new Expresion.NegacionLogica(e); :}
+          | PAR_IZQ expresion:e PAR_DER
+            {: RESULT = e; :}
+          ;
+
+/* --- Estructuras de Control --- */
+sentencias_bloque ::= LLAVE_IZQ lista_instrucciones_bloque:lista LLAVE_DER {: RESULT = lista; :}
+                    | LLAVE_IZQ LLAVE_DER {: RESULT = new ArrayList<Instruccion>(); :} ;
+
+lista_instrucciones_bloque ::= lista_instrucciones_bloque:lista instruccion:i
+            {:
+                if(i != null) lista.add(i);
+                RESULT = lista;
+            :}
+            | instruccion:i
+            {:
+                List<Instruccion> lista = new ArrayList<>();
+                if(i != null) lista.add(i);
+                RESULT = lista;
+            :};
+
+sentencia_if ::= IF PAR_IZQ expresion:cond PAR_DER sentencias_bloque:bTrue
+            {: RESULT = new SentenciaIf(cond, bTrue, null, null); :}
+          | IF PAR_IZQ expresion:cond PAR_DER sentencias_bloque:bTrue lista_else_if:lElseIf
+            {: RESULT = new SentenciaIf(cond, bTrue, lElseIf, null); :}
+          | IF PAR_IZQ expresion:cond PAR_DER sentencias_bloque:bTrue bloque_else:bElse
+            {: RESULT = new SentenciaIf(cond, bTrue, null, bElse); :}
+          | IF PAR_IZQ expresion:cond PAR_DER sentencias_bloque:bTrue lista_else_if:lElseIf bloque_else:bElse
+            {: RESULT = new SentenciaIf(cond, bTrue, lElseIf, bElse); :}
+          ;
+
+lista_else_if ::= lista_else_if:lista ELSE IF PAR_IZQ expresion:cond PAR_DER sentencias_bloque:bTrue
+            {:
+                lista.add(new SentenciaIf(cond, bTrue, null, null));
+                RESULT = lista;
+            :}
+            | ELSE IF PAR_IZQ expresion:cond PAR_DER sentencias_bloque:bTrue
+            {:
+                List<SentenciaIf> lista = new ArrayList<>();
+                lista.add(new SentenciaIf(cond, bTrue, null, null));
+                RESULT = lista;
+            :};
+
+bloque_else ::= ELSE sentencias_bloque:b {: RESULT = b; :} ;
+
+sentencia_while ::= WHILE PAR_IZQ expresion:cond PAR_DER sentencias_bloque:b
+            {: RESULT = new SentenciaWhile(cond, b); :} ;
+
+sentencia_do_while ::= DO sentencias_bloque:b WHILE PAR_IZQ expresion:cond PAR_DER
+            {: RESULT = new SentenciaDoWhile(b, cond); :} ;
+
+sentencia_for ::= FOR PAR_IZQ IDENTIFICADOR:id ASIGNACION expresion:valIni PUNTO_COMA expresion:cond PUNTO_COMA actualizacion_for:act PAR_DER sentencias_bloque:b
+            {: RESULT = new SentenciaFor(new AsignacionVariable(id, valIni), cond, act, b); :}
+          | FOR PAR_IZQ IDENTIFICADOR:id IN expresion:rIni RANGO expresion:rFin PAR_DER sentencias_bloque:b
+            {: RESULT = new SentenciaForRango(id, rIni, rFin, b); :}
+          ;
+
+actualizacion_for ::= IDENTIFICADOR:id ASIGNACION expresion:e
+            {: RESULT = new AsignacionVariable(id, e); :} ;
+
+/* --- SECCIÓN --- */
+seccion ::= SECTION CORCHETE_IZQ lista_atributos_seccion:mapa CORCHETE_DER
+            {:
+                Seccion nuevaSeccion = new Seccion();
+                if(mapa.containsKey("width")) nuevaSeccion.setWidth((Expresion) mapa.get("width"));
+                if(mapa.containsKey("height")) nuevaSeccion.setHeight((Expresion) mapa.get("height"));
+                if(mapa.containsKey("pointX")) nuevaSeccion.setPointX((Expresion) mapa.get("pointX"));
+                if(mapa.containsKey("pointY")) nuevaSeccion.setPointY((Expresion) mapa.get("pointY"));
+                if(mapa.containsKey("orientation")) nuevaSeccion.setOrientation((String) mapa.get("orientation"));
+                if(mapa.containsKey("elements")) nuevaSeccion.setElementos((List<Instruccion>) mapa.get("elements"));
+                if(mapa.containsKey("styles")) nuevaSeccion.setEstilo((Estilo) mapa.get("styles"));
+                RESULT = nuevaSeccion;
+            :};
+
+lista_atributos_seccion ::= lista_atributos_seccion:mapa COMA atributo_seccion:atr
+            {:
+                if(!mapa.containsKey(atr.nombre)) mapa.put(atr.nombre, atr.valor);
+                RESULT = mapa;
+            :}
+            | atributo_seccion:atr
+            {:
+                HashMap<String, Object> mapa = new HashMap<>();
+                mapa.put(atr.nombre, atr.valor);
+                RESULT = mapa;
+            :};
+
+atributo_seccion ::= WIDTH DOS_PUNTOS expresion:e {: RESULT = new AtributoAux("width", e); :}
+              | HEIGHT DOS_PUNTOS expresion:e {: RESULT = new AtributoAux("height", e); :}
+              | POINTX DOS_PUNTOS expresion:e {: RESULT = new AtributoAux("pointX", e); :}
+              | POINTY DOS_PUNTOS expresion:e {: RESULT = new AtributoAux("pointY", e); :}
+              | ORIENTATION DOS_PUNTOS orientacion_val:o {: RESULT = new AtributoAux("orientation", o); :}
+              | ELEMENTS DOS_PUNTOS bloque_elementos:elems {: RESULT = new AtributoAux("elements", elems); :}
+              | STYLES bloque_estilos:est {: RESULT = new AtributoAux("styles", est); :}
+              ;
+
+orientacion_val ::= VERTICAL {: RESULT = "VERTICAL"; :} | HORIZONTAL {: RESULT = "HORIZONTAL"; :} ;
+
+bloque_elementos ::= LLAVE_IZQ lista_elementos:lista LLAVE_DER {: RESULT = lista; :}
+                   | LLAVE_IZQ LLAVE_DER {: RESULT = new ArrayList<Instruccion>(); :} ;
+
+lista_elementos ::= lista_elementos:lista COMA elemento:e {: lista.add(e); RESULT = lista; :}
+                  | elemento:e {: List<Instruccion> l = new ArrayList<>(); l.add(e); RESULT = l; :} ;
+
+/* --- TABLAS --- */
+tabla ::= TABLE CORCHETE_IZQ lista_atributos_tabla:mapa CORCHETE_DER
+            {:
+                Tabla nuevaTabla = new Tabla();
+                if(mapa.containsKey("width")) nuevaTabla.setWidth((Expresion) mapa.get("width"));
+                if(mapa.containsKey("height")) nuevaTabla.setHeight((Expresion) mapa.get("height"));
+                if(mapa.containsKey("pointX")) nuevaTabla.setPointX((Expresion) mapa.get("pointX"));
+                if(mapa.containsKey("pointY")) nuevaTabla.setPointY((Expresion) mapa.get("pointY"));
+                if(mapa.containsKey("elements")) nuevaTabla.setFilas((List<List<Instruccion>>) mapa.get("elements"));
+                if(mapa.containsKey("styles")) nuevaTabla.setEstilo((Estilo) mapa.get("styles"));
+                RESULT = nuevaTabla;
+            :};
+
+lista_atributos_tabla ::= lista_atributos_tabla:mapa COMA atributo_tabla:atr
+            {:
+                if(!mapa.containsKey(atr.nombre)) mapa.put(atr.nombre, atr.valor);
+                RESULT = mapa;
+            :}
+            | atributo_tabla:atr
+            {:
+                HashMap<String, Object> mapa = new HashMap<>();
+                mapa.put(atr.nombre, atr.valor);
+                RESULT = mapa;
+            :};
+
+atributo_tabla ::= WIDTH DOS_PUNTOS expresion:e {: RESULT = new AtributoAux("width", e); :}
+              | HEIGHT DOS_PUNTOS expresion:e {: RESULT = new AtributoAux("height", e); :}
+              | POINTX DOS_PUNTOS expresion:e {: RESULT = new AtributoAux("pointX", e); :}
+              | POINTY DOS_PUNTOS expresion:e {: RESULT = new AtributoAux("pointY", e); :}
+              | ELEMENTS DOS_PUNTOS bloque_filas_tabla:filas {: RESULT = new AtributoAux("elements", filas); :}
+              | STYLES bloque_estilos:est {: RESULT = new AtributoAux("styles", est); :}
+              ;
+
+bloque_filas_tabla ::= LLAVE_IZQ lista_filas:filas LLAVE_DER {: RESULT = filas; :} ;
+
+lista_filas ::= lista_filas:lista COMA fila:f {: lista.add(f); RESULT = lista; :}
+              | fila:f {: List<List<Instruccion>> l = new ArrayList<>(); l.add(f); RESULT = l; :} ;
+
+fila ::= CORCHETE_IZQ lista_celdas:celdas CORCHETE_DER {: RESULT = celdas; :} ;
+
+lista_celdas ::= lista_celdas:lista COMA celda:c {: lista.addAll(c); RESULT = lista; :}
+               | celda:c {: List<Instruccion> l = new ArrayList<>(); l.addAll(c); RESULT = l; :} ;
+
+celda ::= LLAVE_IZQ elemento:e LLAVE_DER
+            {:
+                List<Instruccion> l = new ArrayList<>();
+                if(e != null) l.add(e);
+                RESULT = l;
+            :} ;
+
+/* --- PREGUNTAS Y TEXTOS --- */
+texto_general ::= TEXT CORCHETE_IZQ lista_atributos_pregunta:mapa CORCHETE_DER
+            {:
+                String cont = mapa.containsKey("content") ? (String) mapa.get("content") : "";
+                TextoGeneral t = new TextoGeneral(cont);
+                if(mapa.containsKey("width")) t.setWidth((Expresion) mapa.get("width"));
+                if(mapa.containsKey("height")) t.setHeight((Expresion) mapa.get("height"));
+                if(mapa.containsKey("styles")) t.setEstilo((Estilo) mapa.get("styles"));
+                RESULT = t;
+            :};
+
+pregunta_abierta ::= OPEN_QUESTION CORCHETE_IZQ lista_atributos_pregunta:mapa CORCHETE_DER
+            {:
+                String lbl = mapa.containsKey("label") ? (String) mapa.get("label") : "";
+                PreguntaAbierta p = new PreguntaAbierta(lbl);
+                if(mapa.containsKey("width")) p.setWidth((Expresion) mapa.get("width"));
+                if(mapa.containsKey("height")) p.setHeight((Expresion) mapa.get("height"));
+                if(mapa.containsKey("styles")) p.setEstilo((Estilo) mapa.get("styles"));
+                RESULT = p;
+            :};
+
+/* --- Pregunta Desplegable (DROP_QUESTION) --- */
+pregunta_desplegable ::= DROP_QUESTION CORCHETE_IZQ lista_atributos_pregunta:mapa CORCHETE_DER
+{:
+    String lbl = mapa.containsKey("label") ? (String) mapa.get("label") : "";
+
+    // Obtenemos las opciones (puede ser lista de cadenas o llamada a PokeAPI)
+    List<Expresion> opciones = mapa.containsKey("options") ?
+        (List<Expresion>) mapa.get("options") : new ArrayList<>();
+
+    PreguntaDesplegable p = new PreguntaDesplegable(lbl, opciones, null);
+
+    // El 'correct' en DROP y SELECT es un solo número (Expresion)
+    if(mapa.containsKey("correct")) p.setRespuestaCorrecta((Expresion) mapa.get("correct"));
+
+    if(mapa.containsKey("width")) p.setWidth((Expresion) mapa.get("width"));
+    if(mapa.containsKey("height")) p.setHeight((Expresion) mapa.get("height"));
+    if(mapa.containsKey("styles")) p.setEstilo((Estilo) mapa.get("styles"));
+    RESULT = p;
+:};
+
+/* --- Pregunta Selección Única (SELECT_QUESTION) --- */
+pregunta_seleccion ::= SELECT_QUESTION CORCHETE_IZQ lista_atributos_pregunta:mapa CORCHETE_DER
+{:
+    String lbl = mapa.containsKey("label") ? (String) mapa.get("label") : "";
+
+    // Select_question solo usa Strings, no PokeAPI
+    List<Expresion> opcExp = mapa.containsKey("options") ? (List<Expresion>) mapa.get("options") : new ArrayList<>();
+    List<String> opcionesStr = new ArrayList<>();
+    for(Expresion e : opcExp) {
+        if(e instanceof Expresion.CadenaLiteral) opcionesStr.add(((Expresion.CadenaLiteral)e).getValor());
+    }
+
+    PreguntaSeleccion p = new PreguntaSeleccion(lbl, opcionesStr, null);
+
+    if(mapa.containsKey("correct")) p.setRespuestaCorrecta((Expresion) mapa.get("correct"));
+    if(mapa.containsKey("width")) p.setWidth((Expresion) mapa.get("width"));
+    if(mapa.containsKey("height")) p.setHeight((Expresion) mapa.get("height"));
+    if(mapa.containsKey("styles")) p.setEstilo((Estilo) mapa.get("styles"));
+    RESULT = p;
+:};
+
+/* --- Pregunta Selección Múltiple (MULTIPLE_QUESTION) --- */
+pregunta_multiple ::= MULTIPLE_QUESTION CORCHETE_IZQ lista_atributos_pregunta:mapa CORCHETE_DER
+{:
+    String lbl = mapa.containsKey("label") ? (String) mapa.get("label") : "";
+
+    List<Expresion> opcExp = mapa.containsKey("options") ? (List<Expresion>) mapa.get("options") : new ArrayList<>();
+    List<String> opcionesStr = new ArrayList<>();
+    for(Expresion e : opcExp) {
+        if(e instanceof Expresion.CadenaLiteral) opcionesStr.add(((Expresion.CadenaLiteral)e).getValor());
+    }
+
+    PreguntaMultiple p = new PreguntaMultiple(lbl, opcionesStr, new ArrayList<>());
+
+    // El 'correct' en MULTIPLE es una lista de números
+    if(mapa.containsKey("correct")) {
+        Object correctas = mapa.get("correct");
+        if(correctas instanceof List) {
+            p.setRespuestasCorrectas((List<Expresion>) correctas);
+        } else if(correctas instanceof Expresion) {
+            List<Expresion> unaSola = new ArrayList<>();
+            unaSola.add((Expresion) correctas);
+            p.setRespuestasCorrectas(unaSola);
+        }
+    }
+
+    if(mapa.containsKey("width")) p.setWidth((Expresion) mapa.get("width"));
+    if(mapa.containsKey("height")) p.setHeight((Expresion) mapa.get("height"));
+    if(mapa.containsKey("styles")) p.setEstilo((Estilo) mapa.get("styles"));
+    RESULT = p;
+:};
+
+lista_atributos_pregunta ::= lista_atributos_pregunta:mapa COMA atributo_pregunta:atr
+            {:
+                if(!mapa.containsKey(atr.nombre)) mapa.put(atr.nombre, atr.valor);
+                RESULT = mapa;
+            :}
+            | atributo_pregunta:atr
+            {:
+                HashMap<String, Object> mapa = new HashMap<>();
+                mapa.put(atr.nombre, atr.valor);
+                RESULT = mapa;
+            :};
+
+atributo_pregunta ::= WIDTH DOS_PUNTOS expresion:e {: RESULT = new AtributoAux("width", e); :}
+              | HEIGHT DOS_PUNTOS expresion:e {: RESULT = new AtributoAux("height", e); :}
+              | CONTENT DOS_PUNTOS CADENA:c {: RESULT = new AtributoAux("content", c.replace("\"", "")); :}
+              | LABEL DOS_PUNTOS CADENA:l {: RESULT = new AtributoAux("label", l.replace("\"", "")); :}
+              | OPTIONS DOS_PUNTOS bloque_opciones:opt {: RESULT = new AtributoAux("options", opt); :}
+              | CORRECT DOS_PUNTOS bloque_correctas:corr {: RESULT = new AtributoAux("correct", corr); :}
+              | STYLES bloque_estilos:est {: RESULT = new AtributoAux("styles", est); :}
+              ;
+
+/* Bloque Opciones: Soporta la PokeAPI o una lista de strings */
+bloque_opciones ::= LLAVE_IZQ lista_cadenas_exp:lista LLAVE_DER {: RESULT = lista; :}
+              | WHO_IS_THAT_POKEMON PAR_IZQ TIPO_NUMBER COMA expresion:inicio COMA expresion:fin PAR_DER
+              {:
+                  List<Expresion> pokeCall = new ArrayList<>();
+                  // Pasamos las expresiones evaluadas en lugar de ceros
+                  pokeCall.add(new Expresion.LlamadaPokemon(inicio, fin));
+                  RESULT = pokeCall;
+              :} ;
+
+lista_cadenas_exp ::= lista_cadenas_exp:lista COMA CADENA:c
+            {:
+                lista.add(new Expresion.CadenaLiteral(c.replace("\"", "")));
+                RESULT = lista;
+            :}
+            | CADENA:c
+            {:
+                List<Expresion> lista = new ArrayList<>();
+                lista.add(new Expresion.CadenaLiteral(c.replace("\"", "")));
+                RESULT = lista;
+            :};
+
+bloque_correctas ::= expresion:e {: RESULT = e; :}
+                   | LLAVE_IZQ lista_expresiones:lista LLAVE_DER {: RESULT = lista; :} ;
+
+lista_expresiones ::= lista_expresiones:lista COMA expresion:e {: lista.add(e); RESULT = lista; :}
+                    | expresion:e {: List<Expresion> l = new ArrayList<>(); l.add(e); RESULT = l; :} ;
+
+
+elemento ::= seccion:s                {: RESULT = s; :}
+           | tabla:t                  {: RESULT = t; :}
+           | texto_general:tg         {: RESULT = tg; :}
+           | pregunta_abierta:pa      {: RESULT = pa; :}
+           | pregunta_desplegable:pd  {: RESULT = pd; :}
+           | pregunta_seleccion:ps    {: RESULT = ps; :}
+           | pregunta_multiple:pm     {: RESULT = pm; :}
+           ;
+
+/* --- ESTILOS --- */
+bloque_estilos ::= CORCHETE_IZQ lista_estilos:lista CORCHETE_DER
+            {:
+                Estilo est = new Estilo();
+                for(AtributoAux a : lista) {
+                    if(a.nombre.equals("color")) est.setColorTexto((String) a.valor);
+                    if(a.nombre.equals("background color")) est.setColorFondo((String) a.valor);
+                    if(a.nombre.equals("font family")) est.setFamiliaFuente((String) a.valor);
+                    if(a.nombre.equals("text size")) est.setTamanoTexto((Expresion) a.valor);
+                    /* Aquí procesas border si es necesario */
+                }
+                RESULT = est;
+            :};
+
+lista_estilos ::= lista_estilos:lista COMA estilo:e {: lista.add(e); RESULT = lista; :}
+                | estilo:e {: List<AtributoAux> l = new ArrayList<>(); l.add(e); RESULT = l; :} ;
+
+estilo ::= CADENA:c DOS_PUNTOS valor_color:v {: RESULT = new AtributoAux(c.replace("\"", "").trim(), v); :}
+             | CADENA:c DOS_PUNTOS fuente_val:v {: RESULT = new AtributoAux(c.replace("\"", "").trim(), v); :}
+             | CADENA:c DOS_PUNTOS expresion:v {: RESULT = new AtributoAux(c.replace("\"", "").trim(), v); :}
+             /* | CADENA:c DOS_PUNTOS tupla_borde:v ... */
+             ;
+
+valor_color ::= COLOR_HEX:h {: RESULT = h; :}
+              | COLOR_RED {: RESULT = "RED"; :}
+              | COLOR_BLUE {: RESULT = "BLUE"; :}
+              | COLOR_GREEN {: RESULT = "GREEN"; :}
+              | COLOR_PURPLE {: RESULT = "PURPLE"; :}
+              | COLOR_SKY {: RESULT = "SKY"; :}
+              | COLOR_YELLOW {: RESULT = "YELLOW"; :}
+              | COLOR_BLACK {: RESULT = "BLACK"; :}
+              | COLOR_WHITE {: RESULT = "WHITE"; :}
+              | PAR_IZQ expresion COMA expresion COMA expresion PAR_DER {: RESULT = "RGB"; :}
+              | MENOR expresion COMA expresion COMA expresion MAYOR {: RESULT = "HSL"; :}
+              ;
+
+fuente_val ::= MONO {: RESULT = "MONO"; :} | SANS_SERIF {: RESULT = "SANS_SERIF"; :} | CURSIVE {: RESULT = "CURSIVE"; :} ;
