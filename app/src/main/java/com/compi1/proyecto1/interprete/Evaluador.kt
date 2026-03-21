@@ -15,6 +15,11 @@ class Evaluador(private val tabla: TablaSimbolos) {
                 tabla.obtenerVariable(expresion.nombre)
             }
 
+            is Expresion.Comodin -> {
+                ManejadorErrores.agregarError("Semántico", 0, 0, "Semántico", "No se puede evaluar un comodín (?) si no se inyecta su valor con .draw().")
+                return 0.0
+            }
+
             is Expresion.OperacionAritmetica -> {
                 val izq = evaluar(expresion.izq) as? Double ?: return null
                 val der = evaluar(expresion.der) as? Double ?: return null
@@ -53,6 +58,11 @@ class Evaluador(private val tabla: TablaSimbolos) {
             }
 
             is Expresion.OperacionLogica -> {
+                val operadoresUsados = obtenerOperadoresLogicos(expresion)
+                if (operadoresUsados.size > 1) {
+                    ManejadorErrores.agregarError("Semántico", 0, 0, "Semántico", "No se permite combinar diferentes operadores lógicos (&&, ||) en la misma expresión.")
+                    return 0.0 // Abortamos la evaluación
+                }
                 // 1. Evaluamos recursivamente el lado izquierdo y derecho
                 val izq = evaluar(expresion.izq) as? Double ?: return null
                 val der = evaluar(expresion.der) as? Double ?: return null
@@ -104,5 +114,29 @@ class Evaluador(private val tabla: TablaSimbolos) {
             // Trampa final para cualquier otra expresión desconocida
             else -> null
         }
+    }
+
+    private fun obtenerOperadoresLogicos(exp: Expresion?): Set<String> {
+        val operadores = mutableSetOf<String>()
+        if (exp == null) return operadores
+
+        when (exp) {
+            is Expresion.OperacionLogica -> {
+                operadores.add(exp.operador) // Guarda el "&&" o "||"
+                operadores.addAll(obtenerOperadoresLogicos(exp.izq))
+                operadores.addAll(obtenerOperadoresLogicos(exp.der))
+            }
+            is Expresion.NegacionLogica -> operadores.addAll(obtenerOperadoresLogicos(exp.expresion))
+            is Expresion.OperacionAritmetica -> {
+                operadores.addAll(obtenerOperadoresLogicos(exp.izq))
+                operadores.addAll(obtenerOperadoresLogicos(exp.der))
+            }
+            is Expresion.OperacionRelacional -> {
+                operadores.addAll(obtenerOperadoresLogicos(exp.izq))
+                operadores.addAll(obtenerOperadoresLogicos(exp.der))
+            }
+            else -> {}
+        }
+        return operadores
     }
 }

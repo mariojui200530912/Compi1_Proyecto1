@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import com.compi1.proyecto1.modelos.*;
+import com.compi1.proyecto1.interprete.ManejadorErrores;
 
 /* 2. Configuración del Parser y Manejo de Errores */
 parser code {:
@@ -35,6 +36,7 @@ parser code {:
    ========================================================================== */
 terminal SECTION, TABLE, TEXT, OPEN_QUESTION, DROP_QUESTION, SELECT_QUESTION, MULTIPLE_QUESTION;
 terminal TIPO_NUMBER, TIPO_STRING, TIPO_SPECIAL;
+terminal DRAW;
 terminal IF, ELSE, WHILE, DO, FOR, IN;
 terminal COLOR_RED, COLOR_BLUE, COLOR_GREEN, COLOR_PURPLE, COLOR_SKY, COLOR_YELLOW, COLOR_BLACK, COLOR_WHITE;
 
@@ -48,10 +50,10 @@ terminal COMA, DOS_PUNTOS, ASIGNACION, PUNTO, RANGO, COMODIN, PUNTO_COMA;
 terminal WIDTH, HEIGHT, POINTX, POINTY, ORIENTATION, ELEMENTS, STYLES;
 terminal CONTENT, LABEL, OPTIONS, CORRECT, WHO_IS_THAT_POKEMON;
 terminal VERTICAL, HORIZONTAL;
-terminal COLOR, BACKGROUND_COLOR, FONT_FAMILY, TEXT_SIZE, BORDER;
-terminal MONO, SANS_SERIF, CURSIVE, LINE, DOTTED, DOUBLE;
+terminal MONO, SANS_SERIF, CURSIVE;
+terminal LINE, DOTTED, DOUBLE;
 
-terminal String COLOR_HEX, NUMERO, CADENA, IDENTIFICADOR, ERROR_LEXICO;
+terminal String COLOR_HEX, NUMERO, CADENA, IDENTIFICADOR;
 
 /* ==========================================================================
    DECLARACIÓN DE NO TERMINALES (Con sus tipos de retorno para el AST)
@@ -62,6 +64,7 @@ non terminal Instruccion instruccion;
 // Variables y Expresiones
 non terminal Instruccion declaracion_variable, asignacion;
 non terminal Expresion expresion;
+non terminal ComponenteVisual pregunta_general;
 
 // Control de Flujo
 non terminal List<Instruccion> sentencias_bloque, lista_instrucciones_bloque;
@@ -136,6 +139,10 @@ instruccion ::= declaracion_variable:d {: RESULT = d; :}
               | sentencia_do_while:dw  {: RESULT = dw; :}
               | sentencia_for:f        {: RESULT = f; :}
               | error                  {: RESULT = null; :}
+              | IDENTIFICADOR:id PUNTO DRAW PAR_IZQ lista_expresiones:args PAR_DER
+                {: RESULT = new LlamadaDraw(id, args); :}
+              | IDENTIFICADOR:id PUNTO DRAW PAR_IZQ PAR_DER
+                {: RESULT = new LlamadaDraw(id, new ArrayList<Expresion>()); :}
               ;
 
 /* --- Variables e Identificadores --- */
@@ -149,8 +156,8 @@ declaracion_variable ::= TIPO_NUMBER IDENTIFICADOR:id ASIGNACION expresion:e
             {: RESULT = new DeclaracionVariable("number", id, null); :}
             | TIPO_STRING IDENTIFICADOR:id
             {: RESULT = new DeclaracionVariable("string", id, null); :}
-            | TIPO_SPECIAL IDENTIFICADOR:id
-            {: RESULT = new DeclaracionVariable("special", id, null); :}
+            | TIPO_SPECIAL IDENTIFICADOR:id ASIGNACION pregunta_general:p
+            {: RESULT = new DeclaracionEspecial(id, p); :}
             ;
 
 asignacion ::= IDENTIFICADOR:id ASIGNACION expresion:e
@@ -195,6 +202,7 @@ expresion ::= NUMERO:n
             {: RESULT = new Expresion.NegacionLogica(e); :}
           | PAR_IZQ expresion:e PAR_DER
             {: RESULT = e; :}
+          | COMODIN {: RESULT = new Expresion.Comodin(); :}
           ;
 
 /* --- Estructuras de Control --- */
@@ -355,6 +363,11 @@ texto_general ::= TEXT CORCHETE_IZQ lista_atributos_pregunta:mapa CORCHETE_DER
                 if(mapa.containsKey("styles")) t.setEstilo((Estilo) mapa.get("styles"));
                 RESULT = t;
             :};
+
+pregunta_general ::= pregunta_abierta:p {: RESULT = p; :}
+                   | pregunta_desplegable:p {: RESULT = p; :}
+                   | pregunta_seleccion:p {: RESULT = p; :}
+                   | pregunta_multiple:p {: RESULT = p; :} ;
 
 pregunta_abierta ::= OPEN_QUESTION CORCHETE_IZQ lista_atributos_pregunta:mapa CORCHETE_DER
             {:
@@ -517,7 +530,7 @@ lista_estilos ::= lista_estilos:lista COMA estilo:e {: lista.add(e); RESULT = li
 estilo ::= CADENA:c DOS_PUNTOS valor_color:v {: RESULT = new AtributoAux(c.replace("\"", "").trim(), v); :}
              | CADENA:c DOS_PUNTOS fuente_val:v {: RESULT = new AtributoAux(c.replace("\"", "").trim(), v); :}
              | CADENA:c DOS_PUNTOS expresion:v {: RESULT = new AtributoAux(c.replace("\"", "").trim(), v); :}
-             /* | CADENA:c DOS_PUNTOS tupla_borde:v ... */
+             | CADENA:c DOS_PUNTOS tupla_borde:v {: RESULT = new AtributoAux(c.replace("\"", "").trim(), v); :}
              ;
 
 valor_color ::= COLOR_HEX:h {: RESULT = h; :}
@@ -534,3 +547,13 @@ valor_color ::= COLOR_HEX:h {: RESULT = h; :}
               ;
 
 fuente_val ::= MONO {: RESULT = "MONO"; :} | SANS_SERIF {: RESULT = "SANS_SERIF"; :} | CURSIVE {: RESULT = "CURSIVE"; :} ;
+
+tupla_borde ::= PAR_IZQ expresion:grosor COMA tipo_borde:t COMA valor_color:c PAR_DER
+                {:
+                    // Para simplificar, puedes devolver un arreglo o un string con los datos
+                    RESULT = new Object[]{grosor, t, c};
+                :} ;
+
+tipo_borde ::= LINE {: RESULT = "LINE"; :}
+             | DOTTED {: RESULT = "DOTTED"; :}
+             | DOUBLE {: RESULT = "DOUBLE"; :} ;

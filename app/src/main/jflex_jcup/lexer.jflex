@@ -1,8 +1,7 @@
 package com.compi1.proyecto1.analizadores;
 
 import java_cup.runtime.*;
-import java.util.ArrayList;
-import com.compi1.proyecto1.modelos.ManejadorErrores;
+import com.compi1.proyecto1.interprete.ManejadorErrores;
 
 %%
 
@@ -108,6 +107,7 @@ EmojiCat       = "@\[:\^\^:\]" | "@\[:cat:\]"
     "number"            { return symbol(sym.TIPO_NUMBER); }
     "string"            { return symbol(sym.TIPO_STRING); }
     "special"           { return symbol(sym.TIPO_SPECIAL); }
+    "draw"              { return symbol(sym.DRAW); }
 
     /* --- Estructuras de Control --- */
     "IF"                { return symbol(sym.IF); }
@@ -206,5 +206,4 @@ EmojiCat       = "@\[:\^\^:\]" | "@\[:cat:\]"
 /* --- Manejo de Errores Léxicos --- */
 [^] {
           ManejadorErrores.agregarError(yytext(), yyline + 1, yycolumn + 1, "Léxico", "Símbolo no reconocido");
-          return symbol(sym.ERROR_LEXICO, yytext());
 }

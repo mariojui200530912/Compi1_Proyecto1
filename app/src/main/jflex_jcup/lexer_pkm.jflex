@@ -1,7 +1,7 @@
 package com.compi1.proyecto1.analizadores; // Cambia esto a tu paquete
 
 import java_cup.runtime.*;
-import com.compi1.proyecto1.utils.ManejadorErrores; // Reutilizamos tu caja de errores
+import com.compi1.proyecto1.interprete.ManejadorErrores; // Reutilizamos tu caja de errores
 
 %%
 
@@ -64,6 +64,7 @@ ColorRGB = "<"[ ]*[0-9]+[ ]*","[ ]*[0-9]+[ ]*","[ ]*[0-9]+[ ]*">"
     "table"            { return symbol(sym_pkm.TABLE, yytext()); }
     "line"             { return symbol(sym_pkm.LINE, yytext()); }
     "element"          { return symbol(sym_pkm.ELEMENT, yytext()); }
+    "text"             { return symbol(sym.TEXT, yytext()); }
     "open"             { return symbol(sym_pkm.OPEN, yytext()); }
     "drop"             { return symbol(sym_pkm.DROP, yytext()); }
     "select"           { return symbol(sym_pkm.SELECT, yytext()); }

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="24dp"
+    android:background="#F0F4F8">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="FormCraft"
+        android:textSize="36sp"
+        android:textStyle="bold"
+        android:textColor="#1976D2"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="El mejor compilador de formularios"
+        android:textSize="16sp"
+        android:textColor="#546E7A"
+        android:layout_marginBottom="40dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="MODO CREADOR"
+        android:textStyle="bold"
+        android:textColor="#78909C"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/btnCrearNuevo"
+        android:layout_width="match_parent"
+        android:layout_height="55dp"
+        android:text="📄 Crear Nuevo Formulario"
+        android:textSize="15sp"
+        android:layout_marginBottom="12dp"/>
+
+    <Button
+        android:id="@+id/btnAbrirLocal"
+        android:layout_width="match_parent"
+        android:layout_height="55dp"
+        android:text="📁 Editar Archivo Local"
+        android:textSize="15sp"
+        android:layout_marginBottom="12dp"
+        android:backgroundTint="#FF9800"/>
+
+    <Button
+        android:id="@+id/btnAbrirNube"
+        android:layout_width="match_parent"
+        android:layout_height="55dp"
+        android:text="☁️ Editar desde la Nube"
+        android:textSize="15sp"
+        android:layout_marginBottom="32dp"
+        android:backgroundTint="#4CAF50"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="MODO USUARIO"
+        android:textStyle="bold"
+        android:textColor="#78909C"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/btnResponderMenu"
+        android:layout_width="match_parent"
+        android:layout_height="65dp"
+        android:text="📝 RESPONDER FORMULARIO"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#9C27B0"/>
+</LinearLayout>

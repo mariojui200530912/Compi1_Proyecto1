@@ -3,38 +3,52 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
-    android:background="#F5F5F5">
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="formCraft - Editor"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="8dp"/>
+    android:padding="12dp"
+    android:background="#FFFFFF">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:layout_marginBottom="8dp">
 
         <Button
-            android:id="@+id/btnAbrirArchivo"
+            android:id="@+id/btnMenuOpciones"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⚙️ Menú"
+            android:textColor="#333333"
+            android:backgroundTint="#E0E0E0"/>
+
+        <Space
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Abrir Archivo"
-            android:layout_marginEnd="4dp"
-            android:backgroundTint="#2196F3"/> <Button
-        android:id="@+id/btnGuardarArchivo"
-        android:layout_width="0dp"
+            android:layout_weight="1"/>
+
+        <Button
+            android:id="@+id/btnProbar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="▶️ Probar"
+            android:backgroundTint="#9C27B0"
+            android:layout_marginEnd="8dp"/>
+
+        <Button
+            android:id="@+id/btnCompilar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🚀 Compilar"
+            android:backgroundTint="#4CAF50"/>
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:text="Guardar Código"
-        android:layout_marginStart="4dp"
-        android:backgroundTint="#4CAF50"/> </LinearLayout>
+        android:text="Editor de Código (formCraft):"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:layout_marginBottom="4dp"/>
 
     <EditText
         android:id="@+id/etEditorCodigo"
@@ -42,19 +56,14 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:gravity="top|start"
+        android:hint="Escribe tu código formCraft aquí..."
+        android:textColorHint="#888888"
+        android:textColor="#FFFFFF"
         android:inputType="textMultiLine|textNoSuggestions"
         android:fontFamily="monospace"
-        android:background="#FFFFFF"
-        android:padding="8dp"
-        android:hint="Escribe tu código formCraft aquí..."
-        android:scrollbars="vertical"/>
-
-    <Button
-        android:id="@+id/btnCompilar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Compilar y Renderizar"
-        android:layout_marginTop="8dp"
+        android:background="#1E1E1E"
+        android:padding="10dp"
+        android:scrollbars="vertical"
         android:layout_marginBottom="8dp"/>
 
     <TextView
@@ -62,15 +71,26 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textColor="#D32F2F"
-        android:textStyle="bold"
+        android:background="#FFEBEE"
+        android:padding="10dp"
         android:visibility="gone"
+        android:fontFamily="monospace"
+        android:textSize="12sp"
         android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Vista Previa Rápida:"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:layout_marginBottom="4dp"/>
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="#E0E0E0"
+        android:background="#F5F5F5"
         android:padding="8dp">
 
         <LinearLayout

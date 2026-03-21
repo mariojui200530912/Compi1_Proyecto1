@@ -4,7 +4,7 @@ import java_cup.runtime.*;
 import java.util.ArrayList;
 import java.util.List;
 import com.compi1.proyecto1.modelos.*;
-import com.compi1.proyecto1.utils.ManejadorErrores;
+import com.compi1.proyecto1.interprete.ManejadorErrores;
 
 /* --- CONFIGURACIÓN DEL PARSER --- */
 parser code {:
@@ -34,7 +34,7 @@ parser code {:
 
 /* --- DECLARACIÓN DE TERMINALES --- */
 terminal String HASH_TRES, MENOR_QUE, MAYOR_QUE, BARRA, IGUAL, COMA, LLAVE_IZQ, LLAVE_DER;
-terminal String STYLE, SECTION, CONTENT, TABLE, LINE, ELEMENT, OPEN, DROP, SELECT, MULTIPLE;
+terminal String STYLE, SECTION, CONTENT, TABLE, LINE, ELEMENT, OPEN, DROP, SELECT, MULTIPLE, TEXT;
 terminal String COLOR, BG_COLOR, FONT_FAMILY, TEXT_SIZE, BORDER;
 terminal String VERTICAL, HORIZONTAL, MONO, SANS_SERIF, CURSIVE, DOTTED, DOUBLE_TYPE, COLOR_NAME;
 terminal String META_KEY;
@@ -46,6 +46,7 @@ non terminal Object metadatos, ignorar_meta, token_cualquiera;
 non terminal Instruccion componente;
 non terminal Seccion seccion;
 non terminal Tabla tabla;
+non terminal TextoGeneral texto_general;
 non terminal PreguntaAbierta pregunta_abierta;
 non terminal PreguntaDesplegable pregunta_desplegable;
 non terminal PreguntaSeleccion pregunta_seleccion;
@@ -79,6 +80,7 @@ lista_componentes ::= lista_componentes:l componente:c {: l.add(c); RESULT = l; 
 
 componente ::= seccion:s {: RESULT = s; :}
              | tabla:t {: RESULT = t; :}
+             | texto_general:tg {: RESULT = tg; :}
              | pregunta_abierta:p {: RESULT = p; :}
              | pregunta_desplegable:p {: RESULT = p; :}
              | pregunta_seleccion:p {: RESULT = p; :}
@@ -117,7 +119,7 @@ seccion ::= MENOR_QUE SECTION IGUAL NUMERO:w COMA NUMERO:h COMA NUMERO:x COMA NU
 orientacion ::= VERTICAL {: RESULT = "VERTICAL"; :} | HORIZONTAL {: RESULT = "HORIZONTAL"; :} ;
 
 /* --- 2. TABLAS --- */
-tabla ::= MENOR_QUE TABLE MAYOR_QUE
+tabla ::= MENOR_QUE TABLE IGUAL NUMERO:w COMA NUMERO:h COMA NUMERO:x COMA NUMERO:y MAYOR_QUE
           bloque_estilos:e
           MENOR_QUE CONTENT MAYOR_QUE
           lista_lineas:filas
@@ -125,17 +127,25 @@ tabla ::= MENOR_QUE TABLE MAYOR_QUE
           MENOR_QUE BARRA TABLE MAYOR_QUE
           {:
               Tabla t = new Tabla();
+              t.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+              t.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+              t.setPointX(new Expresion.NumeroLiteral(Double.parseDouble(x)));
+              t.setPointY(new Expresion.NumeroLiteral(Double.parseDouble(y)));
               t.setFilas(filas);
               t.setEstilo(e);
               RESULT = t;
           :}
-        | MENOR_QUE TABLE MAYOR_QUE
+        | MENOR_QUE TABLE IGUAL NUMERO:w COMA NUMERO:h COMA NUMERO:x COMA NUMERO:y MAYOR_QUE
           MENOR_QUE CONTENT MAYOR_QUE
           lista_lineas:filas
           MENOR_QUE BARRA CONTENT MAYOR_QUE
           MENOR_QUE BARRA TABLE MAYOR_QUE
           {:
               Tabla t = new Tabla();
+              t.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+              t.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+              t.setPointX(new Expresion.NumeroLiteral(Double.parseDouble(x)));
+              t.setPointY(new Expresion.NumeroLiteral(Double.parseDouble(y)));
               t.setFilas(filas);
               RESULT = t;
           :} ;
@@ -150,6 +160,33 @@ lista_elementos_linea ::= lista_elementos_linea:le celda:c {: le.addAll(c); RESU
 
 celda ::= MENOR_QUE ELEMENT MAYOR_QUE lista_componentes:c MENOR_QUE BARRA ELEMENT MAYOR_QUE {: RESULT = c; :}
         | MENOR_QUE ELEMENT MAYOR_QUE MENOR_QUE BARRA ELEMENT MAYOR_QUE {: RESULT = new ArrayList<Instruccion>(); :} ;
+
+/* --- TEXTO GENERAL (<text=...>) --- */
+texto_general ::= MENOR_QUE TEXT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:txt BARRA MAYOR_QUE
+                  {:
+                      TextoGeneral t = new TextoGeneral(parser.revertirEmojis(txt));
+                      t.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                      t.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                      RESULT = t;
+                  :}
+                | MENOR_QUE TEXT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:txt MAYOR_QUE
+                  bloque_estilos:e
+                  MENOR_QUE BARRA TEXT MAYOR_QUE
+                  {:
+                      TextoGeneral t = new TextoGeneral(parser.revertirEmojis(txt));
+                      t.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                      t.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                      t.setEstilo(e);
+                      RESULT = t;
+                  :}
+                | MENOR_QUE TEXT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:txt MAYOR_QUE
+                  MENOR_QUE BARRA TEXT MAYOR_QUE
+                  {:
+                      TextoGeneral t = new TextoGeneral(parser.revertirEmojis(txt));
+                      t.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
+                      t.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
+                      RESULT = t;
+                  :} ;
 
 /* --- 3. PREGUNTA ABIERTA --- */
 pregunta_abierta ::= MENOR_QUE OPEN IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl BARRA MAYOR_QUE

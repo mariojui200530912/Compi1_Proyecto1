@@ -16,7 +16,7 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
                 // --- MANEJO DE VARIABLES ---
                 is DeclaracionVariable -> {
                     val valor = instruccion.valorInicial?.let { evaluador.evaluar(it) }
-                    tabla.declararVariable(instruccion.tipo, instruccion.nombre, valor)
+                    tabla.declararVariable(instruccion.tipo, instruccion.nombre, valor ?: 0.0)
                 }
 
                 is AsignacionVariable -> {
@@ -26,13 +26,45 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
                     }
                 }
 
+                is DeclaracionEspecial -> {
+                    // Guardamos la pregunta completa en la tabla de símbolos como tipo "special"
+                    tabla.declararVariable("special", instruccion.id, instruccion.pregunta)
+                }
+
+                is LlamadaDraw -> {
+                    // Obtenemos directamente el valor de la variable
+                    val valorVariable = tabla.obtenerVariable(instruccion.id)
+
+                    // Verificamos si existe y si es un componente visual (o sea, si es 'special')
+                    if (valorVariable !is ComponenteVisual) {
+                        ManejadorErrores.agregarError("Semántico", 0, 0, "Semántico", "La variable '${instruccion.id}' no es 'special' o no existe.")
+                    } else {
+                        val preguntaOriginal = valorVariable // Ya es nuestro componente
+
+                        // 1. Evaluamos los argumentos que pasaron en el draw()
+                        val valoresArgumentos = instruccion.argumentos.map {
+                            (evaluador.evaluar(it) as? Double) ?: 0.0
+                        }.toMutableList()
+
+                        // 2. Clonamos la pregunta e inyectamos los comodines
+                        val preguntaListaParaDibujar = clonarEInyectar(preguntaOriginal, valoresArgumentos)
+
+                        // 3. Verificamos si sobraron argumentos
+                        if (valoresArgumentos.isNotEmpty()) {
+                            ManejadorErrores.agregarError("Semántico", 0, 0, "Semántico", "Sobran parámetros en ${instruccion.id}.draw().")
+                        }
+
+                        // 4. ¡Añadimos la pregunta lista a nuestra lista de dibujado!
+                        componentesA_Dibujar.add(preguntaListaParaDibujar)
+                    }
+                }
+
                 // --- CONDICIONALES ---
                 is SentenciaIf -> {
-                    // El manual dicta que si la evaluación es mayor o igual a 1 (o > 0), es verdadero[cite: 133].
-                    // Si es 0 o menor, el condicional es falso[cite: 134].
                     val condicionPrincipal = (evaluador.evaluar(instruccion.condicion) as? Double) ?: 0.0
 
-                    if (condicionPrincipal > 0.0) {
+                    // El manual dice: mayor o igual a 1 es verdadero, 0 o menor es falso
+                    if (condicionPrincipal >= 1.0) {
                         componentesA_Dibujar.addAll(ejecutar(instruccion.bloqueTrue))
                     } else {
                         var bloqueEjecutado = false
@@ -41,7 +73,7 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
                         instruccion.bloqueElseIf?.forEach { elseIf ->
                             if (!bloqueEjecutado) {
                                 val condElseIf = (evaluador.evaluar(elseIf.condicion) as? Double) ?: 0.0
-                                if (condElseIf > 0.0) {
+                                if (condElseIf >= 1.0) {
                                     componentesA_Dibujar.addAll(ejecutar(elseIf.bloqueTrue))
                                     bloqueEjecutado = true
                                 }
@@ -57,7 +89,7 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
 
                 // --- CICLOS ---
                 is SentenciaWhile -> {
-                    while (((evaluador.evaluar(instruccion.condicion) as? Double) ?: 0.0) > 0.0) {
+                    while (((evaluador.evaluar(instruccion.condicion) as? Double) ?: 0.0) >= 1.0) {
                         componentesA_Dibujar.addAll(ejecutar(instruccion.bloque))
                     }
                 }
@@ -65,16 +97,14 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
                 is SentenciaDoWhile -> {
                     do {
                         componentesA_Dibujar.addAll(ejecutar(instruccion.bloque))
-                    } while (((evaluador.evaluar(instruccion.condicion) as? Double) ?: 0.0) > 0.0) 
+                    } while (((evaluador.evaluar(instruccion.condicion) as? Double) ?: 0.0) >= 1.0)
                 }
 
                 is SentenciaFor -> {
-                    // Ejecutamos la asignación inicial (ej: i = 0)
                     ejecutar(listOf(instruccion.asignacionInicial))
 
-                    while (((evaluador.evaluar(instruccion.condicion) as? Double) ?: 0.0) > 0.0) {
+                    while (((evaluador.evaluar(instruccion.condicion) as? Double) ?: 0.0) >= 1.0) {
                         componentesA_Dibujar.addAll(ejecutar(instruccion.bloque))
-                        // Ejecutamos la actualización (ej: i = i + 1)
                         ejecutar(listOf(instruccion.actualizacion))
                     }
                 }
@@ -83,7 +113,7 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
                     val inicio = (evaluador.evaluar(instruccion.rangoInicio) as? Double) ?: 0.0
                     val fin = (evaluador.evaluar(instruccion.rangoFin) as? Double) ?: 0.0
 
-                    // El manual asume que se declara la variable si aún no existe y se asume tipo number[cite: 139].
+                    // Se declara la variable asumiendo el tipo number
                     if (tabla.obtenerVariable(instruccion.variable) == null) {
                         tabla.declararVariable("number", instruccion.variable, inicio)
                     } else {
@@ -100,15 +130,12 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
 
                 // --- COMPONENTES VISUALES ---
                 is Seccion -> {
-                    // Una sección puede tener IFs o FORs adentro. Llamamos a ejecutar recursivamente
-                    // para limpiar la lógica y quedarnos solo con los componentes visuales puros.
                     val elementosResueltos = ejecutar(instruccion.elementos)
                     instruccion.elementos = elementosResueltos
                     componentesA_Dibujar.add(instruccion)
                 }
 
                 is Tabla -> {
-                    // Para la tabla, iteramos sobre sus filas y celdas para limpiar la lógica interna
                     val filasResueltas = mutableListOf<List<Instruccion>>()
                     for (fila in instruccion.filas) {
                         filasResueltas.add(ejecutar(fila))
@@ -118,12 +145,71 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
                 }
 
                 is ComponenteVisual -> {
-                    // Si es un Texto, PreguntaAbierta, etc., va directo a la lista final
                     componentesA_Dibujar.add(instruccion)
                 }
             }
         }
 
         return componentesA_Dibujar
+    }
+
+    // =========================================================================
+    //  MÉTODOS AUXILIARES PARA LOS COMODINES DE LAS VARIABLES SPECIAL
+    // =========================================================================
+
+    private fun clonarEInyectar(pregunta: ComponenteVisual, valores: MutableList<Double>): ComponenteVisual {
+        // Reemplazamos los comodines en el width y height (que aplican a todas las preguntas)
+        val w = inyectarComodines(pregunta.width, valores)
+        val h = inyectarComodines(pregunta.height, valores)
+
+        // Clonamos el objeto dependiendo de su tipo específico para no arruinar la variable original en memoria
+        return when (pregunta) {
+            is PreguntaAbierta -> PreguntaAbierta(pregunta.label).apply {
+                width = w; height = h; estilo = pregunta.estilo
+            }
+            is PreguntaSeleccion -> PreguntaSeleccion(
+                pregunta.label, pregunta.opciones, inyectarComodines(pregunta.respuestaCorrecta, valores)
+            ).apply { width = w; height = h; estilo = pregunta.estilo }
+            is PreguntaDesplegable -> PreguntaDesplegable(
+                pregunta.label, pregunta.opciones, inyectarComodines(pregunta.respuestaCorrecta, valores)
+            ).apply { width = w; height = h; estilo = pregunta.estilo }
+            is PreguntaMultiple -> PreguntaMultiple(
+                pregunta.label, pregunta.opciones, pregunta.respuestasCorrectas.mapNotNull { inyectarComodines(it, valores) }
+            ).apply { width = w; height = h; estilo = pregunta.estilo }
+            else -> pregunta
+        }
+    }
+
+    private fun inyectarComodines(exp: Expresion?, valores: MutableList<Double>): Expresion? {
+        if (exp == null) return null
+
+        return when (exp) {
+            // Si encontramos un '?' en el AST, sacamos un valor de la lista y lo convertimos a número
+            is Expresion.Comodin -> {
+                if (valores.isNotEmpty()) {
+                    Expresion.NumeroLiteral(valores.removeAt(0))
+                } else {
+                    ManejadorErrores.agregarError("Semántico", 0, 0, "Semántico", "Faltan parámetros en .draw() para llenar los comodines.")
+                    Expresion.NumeroLiteral(0.0) // Valor por defecto para que no explote
+                }
+            }
+            // Si es una operación, buscamos recursivamente en sus ramas izquierda y derecha
+            is Expresion.OperacionAritmetica -> Expresion.OperacionAritmetica(
+                inyectarComodines(exp.izq, valores)!!, exp.operador, inyectarComodines(exp.der, valores)!!
+            )
+            is Expresion.OperacionRelacional -> Expresion.OperacionRelacional(
+                inyectarComodines(exp.izq, valores)!!, exp.operador, inyectarComodines(exp.der, valores)!!
+            )
+            is Expresion.OperacionLogica -> Expresion.OperacionLogica(
+                inyectarComodines(exp.izq, valores)!!, exp.operador, inyectarComodines(exp.der, valores)!!
+            )
+            is Expresion.NegacionLogica -> Expresion.NegacionLogica(
+                inyectarComodines(exp.expresion, valores)!!
+            )
+            is Expresion.LlamadaPokemon -> Expresion.LlamadaPokemon(
+                inyectarComodines(exp.rangoInicio, valores)!!, inyectarComodines(exp.rangoFin, valores)!!
+            )
+            else -> exp // Si es un Numero, Variable o Cadena, lo devolvemos tal cual
+        }
     }
 }

@@ -2,6 +2,7 @@ package com.compi1.proyecto1.modelos
 
 sealed class Expresion {
     // Literales base
+    class Comodin : Expresion()
     data class NumeroLiteral(val valor: Double) : Expresion()
     data class CadenaLiteral(val valor: String) : Expresion()
     data class Variable(val nombre: String) : Expresion()

@@ -8,45 +8,46 @@ package com.compi1.proyecto1.analizadores;
 /** CUP generated class containing symbol constants. */
 public class sym_pkm {
   /* terminals */
-  public static final int BG_COLOR = 21;
-  public static final int NUMERO = 34;
-  public static final int MONO = 27;
-  public static final int TEXT_SIZE = 23;
-  public static final int HORIZONTAL = 26;
+  public static final int NUMERO = 35;
+  public static final int BG_COLOR = 22;
+  public static final int MONO = 28;
+  public static final int TEXT_SIZE = 24;
+  public static final int HORIZONTAL = 27;
   public static final int LLAVE_IZQ = 8;
   public static final int IGUAL = 6;
-  public static final int TEXTO_LIBRE = 38;
-  public static final int RGB_COLOR = 37;
-  public static final int CURSIVE = 29;
+  public static final int TEXTO_LIBRE = 39;
+  public static final int RGB_COLOR = 38;
+  public static final int CURSIVE = 30;
   public static final int SELECT = 18;
-  public static final int VERTICAL = 25;
+  public static final int VERTICAL = 26;
   public static final int EOF = 0;
   public static final int TABLE = 13;
   public static final int error = 1;
   public static final int COMA = 7;
-  public static final int CADENA = 35;
+  public static final int CADENA = 36;
   public static final int LINE = 14;
   public static final int MAYOR_QUE = 4;
-  public static final int META_KEY = 33;
-  public static final int DOUBLE_TYPE = 31;
+  public static final int META_KEY = 34;
+  public static final int DOUBLE_TYPE = 32;
   public static final int MULTIPLE = 19;
-  public static final int COLOR = 20;
-  public static final int COLOR_NAME = 32;
+  public static final int COLOR = 21;
+  public static final int COLOR_NAME = 33;
   public static final int BARRA = 5;
   public static final int LLAVE_DER = 9;
   public static final int HASH_TRES = 2;
   public static final int CONTENT = 12;
-  public static final int FONT_FAMILY = 22;
+  public static final int FONT_FAMILY = 23;
   public static final int ELEMENT = 15;
   public static final int DROP = 17;
-  public static final int SANS_SERIF = 28;
+  public static final int SANS_SERIF = 29;
   public static final int OPEN = 16;
-  public static final int BORDER = 24;
+  public static final int BORDER = 25;
   public static final int MENOR_QUE = 3;
+  public static final int TEXT = 20;
   public static final int SECTION = 11;
   public static final int STYLE = 10;
-  public static final int DOTTED = 30;
-  public static final int HEX_COLOR = 36;
+  public static final int DOTTED = 31;
+  public static final int HEX_COLOR = 37;
   public static final String[] terminalNames = new String[] {
   "EOF",
   "error",
@@ -68,6 +69,7 @@ public class sym_pkm {
   "DROP",
   "SELECT",
   "MULTIPLE",
+  "TEXT",
   "COLOR",
   "BG_COLOR",
   "FONT_FAMILY",

@@ -6,6 +6,9 @@ sealed class Instruccion
 data class DeclaracionVariable(val tipo: String, val nombre: String, val valorInicial: Expresion?) : Instruccion()
 data class AsignacionVariable(val nombre: String, val valor: Expresion) : Instruccion()
 
+data class DeclaracionEspecial(val id: String, val pregunta: ComponenteVisual) : Instruccion()
+data class LlamadaDraw(val id: String, val argumentos: List<Expresion>) : Instruccion()
+
 // Estructuras de Control de Flujo
 data class SentenciaIf(
     val condicion: Expresion,
@@ -31,3 +34,4 @@ data class SentenciaForRango(
     val rangoFin: Expresion,
     val bloque: List<Instruccion>
 ) : Instruccion()
+

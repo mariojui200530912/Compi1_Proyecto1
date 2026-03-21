@@ -1,7 +1,6 @@
 package com.compi1.proyecto1.interprete
 
 import com.compi1.proyecto1.modelos.*
-import com.compi1.proyecto1.interprete.Evaluador
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -26,7 +25,7 @@ class ExportadorPKM(private val evaluador: Evaluador) {
         multiples = 0
 
         // 2. Generamos el cuerpo primero (para que los contadores se llenen)
-        val cuerpoBuilder = java.lang.StringBuilder()
+        val cuerpoBuilder = StringBuilder()
         for (comp in componentes) {
             if (comp is ComponenteVisual) {
                 cuerpoBuilder.append(generarComponente(comp, 0))
@@ -37,18 +36,18 @@ class ExportadorPKM(private val evaluador: Evaluador) {
         val fechaActual = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
         val horaActual = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 
-        val metaBuilder = java.lang.StringBuilder()
+        val metaBuilder = StringBuilder()
         metaBuilder.append("###\n")
-        metaBuilder.append("  Author: $autor\n")
-        metaBuilder.append("  Fecha: $fechaActual\n")
-        metaBuilder.append("  Hora: $horaActual\n")
-        metaBuilder.append("  Description: $descripcion\n")
-        metaBuilder.append("  Total de Secciones: $totalSecciones\n")
-        metaBuilder.append("  Total de Preguntas: $totalPreguntas\n")
-        metaBuilder.append("      Abiertas: $abiertas\n")
-        metaBuilder.append("      Desplegables: $desplegables\n")
-        metaBuilder.append("      Selección: $seleccion\n")
-        metaBuilder.append("      Múltiples: $multiples\n")
+        metaBuilder.append("  \"autor\": \"$autor\",\n") // Ajustado para parecer más un metadato estándar
+        metaBuilder.append("  \"fecha\": \"$fechaActual\",\n")
+        metaBuilder.append("  \"hora\": \"$horaActual\",\n")
+        metaBuilder.append("  \"description\": \"$descripcion\",\n")
+        metaBuilder.append("  \"secciones\": $totalSecciones,\n")
+        metaBuilder.append("  \"preguntas\": $totalPreguntas,\n")
+        metaBuilder.append("  \"abiertas\": $abiertas,\n")
+        metaBuilder.append("  \"desplegables\": $desplegables,\n")
+        metaBuilder.append("  \"seleccion\": $seleccion,\n")
+        metaBuilder.append("  \"multiples\": $multiples\n")
         metaBuilder.append("###\n\n")
 
         // 4. Unimos metadatos y cuerpo
@@ -57,7 +56,7 @@ class ExportadorPKM(private val evaluador: Evaluador) {
 
     private fun generarComponente(comp: ComponenteVisual, nivel: Int): String {
         val tab = "  ".repeat(nivel)
-        val sb = java.lang.StringBuilder()
+        val sb = StringBuilder()
 
         // Evaluamos dimensiones (por si venían como sumas o variables en el código original)
         val w = eval(comp.width) ?: 0
@@ -85,7 +84,12 @@ class ExportadorPKM(private val evaluador: Evaluador) {
             }
 
             is Tabla -> {
-                sb.append("$tab<table>\n")
+                // ¡AQUÍ ESTÁ EL ARREGLO PRINCIPAL PARA LAS TABLAS!
+                val pX = eval(comp.pointX) ?: 0
+                val pY = eval(comp.pointY) ?: 0
+
+                sb.append("$tab<table=$w,$h,$pX,$pY>\n") // Ahora la tabla guarda sus 4 atributos
+
                 if (estilos.isNotEmpty()) sb.append(estilos)
                 sb.append("$tab  <content>\n")
 
@@ -108,11 +112,13 @@ class ExportadorPKM(private val evaluador: Evaluador) {
             is TextoGeneral -> {
                 val txt = revertirEmojis(comp.content)
                 if (estilos.isEmpty()) {
-                    sb.append("$tab<open=$w,$h,\"$txt\"/>\n")
+                    // Cierre en la misma línea si no hay estilos
+                    sb.append("$tab<text=$w,$h,\"$txt\"/>\n")
                 } else {
-                    sb.append("$tab<open=$w,$h,\"$txt\">\n")
+                    // Cierre con etiqueta </text> si hay estilos
+                    sb.append("$tab<text=$w,$h,\"$txt\">\n")
                     sb.append(estilos)
-                    sb.append("$tab</open>\n")
+                    sb.append("$tab</text>\n")
                 }
             }
 
@@ -146,7 +152,6 @@ class ExportadorPKM(private val evaluador: Evaluador) {
             is PreguntaSeleccion -> {
                 totalPreguntas++; seleccion++
                 val lbl = revertirEmojis(comp.label)
-                // Opciones en PreguntaSeleccion son List<String>
                 val ops = "{" + comp.opciones.joinToString(",") { "\"$it\"" } + "}"
                 val corr = eval(comp.respuestaCorrecta) ?: -1
 
@@ -164,7 +169,6 @@ class ExportadorPKM(private val evaluador: Evaluador) {
                 val lbl = revertirEmojis(comp.label)
                 val ops = "{" + comp.opciones.joinToString(",") { "\"$it\"" } + "}"
 
-                // Formatear lista de respuestas correctas
                 val corrList = comp.respuestasCorrectas.mapNotNull { eval(it) }
                 val corrFormat = if (corrList.isEmpty()) "{}" else "{" + corrList.joinToString(",") + "}"
 
@@ -184,27 +188,24 @@ class ExportadorPKM(private val evaluador: Evaluador) {
 
     private fun generarEstilos(estilo: Estilo?, tab: String): String {
         if (estilo == null) return ""
-        val sb = java.lang.StringBuilder()
+        val sb = StringBuilder()
         sb.append("$tab<style>\n")
 
-        estilo.colorTexto?.let { sb.append("$tab  <color=$it/>\n") }
-        estilo.colorFondo?.let { sb.append("$tab  <background color=$it/>\n") }
-        estilo.familiaFuente?.let { sb.append("$tab  <font family=$it/>\n") }
-        estilo.tamanoTexto?.let { sb.append("$tab  <text size=${eval(it)}/>\n") }
-        // Aquí podrías agregar borders si lo tienes implementado
+        estilo.colorTexto?.let { sb.append("$tab  <color=\"$it\"/>\n") } // Le añadí comillas por seguridad al string
+        estilo.colorFondo?.let { sb.append("$tab  <bg_color=\"$it\"/>\n") } // Ajustado a bg_color según tu LexerPKM
+        estilo.familiaFuente?.let { sb.append("$tab  <font_family=\"$it\"/>\n") } // Ajustado a font_family
+        estilo.tamanoTexto?.let { sb.append("$tab  <text_size=${eval(it)}/>\n") }
 
         sb.append("$tab</style>\n")
         return sb.toString()
     }
 
-    // Traduce las listas de expresiones a strings formato {"op1", "op2"}
     private fun formatOpciones(opciones: List<Expresion>): String {
-        // Validamos si es una llamada a PokeAPI
         val primera = opciones.firstOrNull()
         if (primera is Expresion.LlamadaPokemon) {
             val i = eval(primera.rangoInicio) ?: 1
             val f = eval(primera.rangoFin) ?: 10
-            return "WHO_IS_THAT_POKEMON(number, $i, $f)" // Según tu sintaxis original
+            return "{WHO_IS_THAT_POKEMON(number, $i, $f)}"
         }
 
         val textos = opciones.map { evalString(it) }
@@ -221,7 +222,6 @@ class ExportadorPKM(private val evaluador: Evaluador) {
         return evaluador.evaluar(exp)?.toString() ?: ""
     }
 
-    // Requisito del enunciado: Los emojis no se guardan como caracteres, sino como etiquetas
     private fun revertirEmojis(texto: String): String {
         var txt = texto
         txt = txt.replace("❤️", "@[:heart:]")
