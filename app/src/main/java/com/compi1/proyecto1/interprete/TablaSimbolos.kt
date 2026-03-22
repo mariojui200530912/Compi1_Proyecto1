@@ -18,7 +18,7 @@ class TablaSimbolos {
             return
         }
 
-        // Asignación de valores por defecto si no viene inicializada
+        // Asignacion de valores por defecto si no viene inicializada
         val valorFinal = valorInicial ?: when (tipo) {
             "number" -> 0.0
             "string" -> ""
@@ -72,5 +72,10 @@ class TablaSimbolos {
             "special" -> valor is ComponenteVisual // Almacena preguntas
             else -> false
         }
+    }
+
+    // Funcion auxiliar para verificar existencia silenciosamente
+    fun existeVariable(nombre: String): Boolean {
+        return variables.containsKey(nombre)
     }
 }

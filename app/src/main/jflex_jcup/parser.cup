@@ -1,5 +1,5 @@
 package com.compi1.proyecto1.analizadores;
-/* 1. Código de Usuario (Paquetes e importaciones) */
+/* Codigo de Usuario (Paquetes e importaciones) */
 
 import java_cup.runtime.*;
 import java.util.ArrayList;
@@ -8,11 +8,8 @@ import java.util.List;
 import com.compi1.proyecto1.modelos.*;
 import com.compi1.proyecto1.interprete.ManejadorErrores;
 
-/* 2. Configuración del Parser y Manejo de Errores */
+/* Configuracion del Parser y Manejo de Errores */
 parser code {:
-    // Lista global para recolectar errores y mostrarlos en el reporte de Android
-    // public List<MiError> listaErrores = new ArrayList<>();
-
     // Clase auxiliar para transportar atributos temporales
     public class AtributoAux {
         public String nombre;
@@ -31,16 +28,14 @@ parser code {:
     }
 :}
 
-/* ==========================================================================
-   DECLARACIÓN DE TERMINALES
-   ========================================================================== */
+/* ======= DECLARACION DE TERMINALES  ======= */
 terminal SECTION, TABLE, TEXT, OPEN_QUESTION, DROP_QUESTION, SELECT_QUESTION, MULTIPLE_QUESTION;
 terminal TIPO_NUMBER, TIPO_STRING, TIPO_SPECIAL;
 terminal DRAW;
 terminal IF, ELSE, WHILE, DO, FOR, IN;
 terminal COLOR_RED, COLOR_BLUE, COLOR_GREEN, COLOR_PURPLE, COLOR_SKY, COLOR_YELLOW, COLOR_BLACK, COLOR_WHITE;
 
-terminal MAS, MENOS, POR, DIVIDIDO, POTENCIA, MODULO;
+terminal MAS, MENOS, POR, DIVIDIDO, POTENCIA, MODULO, UMINUS;
 terminal MAYOR, MAYOR_IGUAL, MENOR, MENOR_IGUAL, IGUALDAD, DIFERENTE;
 terminal OR, AND, NOT;
 
@@ -48,16 +43,14 @@ terminal PAR_IZQ, PAR_DER, CORCHETE_IZQ, CORCHETE_DER, LLAVE_IZQ, LLAVE_DER;
 terminal COMA, DOS_PUNTOS, ASIGNACION, PUNTO, RANGO, COMODIN, PUNTO_COMA;
 
 terminal WIDTH, HEIGHT, POINTX, POINTY, ORIENTATION, ELEMENTS, STYLES;
-terminal CONTENT, LABEL, OPTIONS, CORRECT, WHO_IS_THAT_POKEMON;
+terminal CONTENT, LABEL, OPTIONS, CORRECT, WHO_IS_THAT_POKEMON, MAYUS_NUMBER;
 terminal VERTICAL, HORIZONTAL;
 terminal MONO, SANS_SERIF, CURSIVE;
 terminal LINE, DOTTED, DOUBLE;
 
 terminal String COLOR_HEX, NUMERO, CADENA, IDENTIFICADOR;
 
-/* ==========================================================================
-   DECLARACIÓN DE NO TERMINALES (Con sus tipos de retorno para el AST)
-   ========================================================================== */
+/* ======= DECLARACION DE NO TERMINALES ======== */
 non terminal List<Instruccion> inicio, lista_instrucciones;
 non terminal Instruccion instruccion;
 
@@ -100,21 +93,18 @@ non terminal List<Expresion> bloque_opciones, lista_cadenas_exp;
 non terminal Object bloque_correctas; // Puede devolver Expresion o List<Expresion>
 non terminal List<Expresion> lista_expresiones;
 
-/* ==========================================================================
-   PRECEDENCIAS
-   ========================================================================== */
+/* ====== PRECEDENCIAS ======= */
 precedence left OR, AND;
 precedence right NOT;
 precedence left MAYOR, MAYOR_IGUAL, MENOR, MENOR_IGUAL, IGUALDAD, DIFERENTE;
 precedence left MAS, MENOS;
 precedence left POR, DIVIDIDO, MODULO;
 precedence right POTENCIA;
+precedence left UMINUS;
 
 start with inicio;
 
-/* ==========================================================================
-   REGLAS GRAMATICALES Y ACCIONES SEMÁNTICAS
-   ========================================================================== */
+/* ==========  REGLAS GRAMATICALES Y ACCIONES SEMANTICAS  ========= */
 
 inicio ::= lista_instrucciones:lista {: RESULT = lista; :} ;
 
@@ -203,6 +193,8 @@ expresion ::= NUMERO:n
           | PAR_IZQ expresion:e PAR_DER
             {: RESULT = e; :}
           | COMODIN {: RESULT = new Expresion.Comodin(); :}
+          | MENOS expresion:e
+                {: RESULT = new Expresion.MenosUnario(e); :} %prec UMINUS
           ;
 
 /* --- Estructuras de Control --- */
@@ -260,7 +252,7 @@ sentencia_for ::= FOR PAR_IZQ IDENTIFICADOR:id ASIGNACION expresion:valIni PUNTO
 actualizacion_for ::= IDENTIFICADOR:id ASIGNACION expresion:e
             {: RESULT = new AsignacionVariable(id, e); :} ;
 
-/* --- SECCIÓN --- */
+/* --- SECCION --- */
 seccion ::= SECTION CORCHETE_IZQ lista_atributos_seccion:mapa CORCHETE_DER
             {:
                 Seccion nuevaSeccion = new Seccion();
@@ -400,15 +392,18 @@ pregunta_desplegable ::= DROP_QUESTION CORCHETE_IZQ lista_atributos_pregunta:map
 :};
 
 /* --- Pregunta Selección Única (SELECT_QUESTION) --- */
-pregunta_seleccion ::= SELECT_QUESTION CORCHETE_IZQ lista_atributos_pregunta:mapa CORCHETE_DER
+pregunta_seleccion ::= SELECT_QUESTION:sq CORCHETE_IZQ lista_atributos_pregunta:mapa CORCHETE_DER
 {:
     String lbl = mapa.containsKey("label") ? (String) mapa.get("label") : "";
 
-    // Select_question solo usa Strings, no PokeAPI
     List<Expresion> opcExp = mapa.containsKey("options") ? (List<Expresion>) mapa.get("options") : new ArrayList<>();
     List<String> opcionesStr = new ArrayList<>();
     for(Expresion e : opcExp) {
         if(e instanceof Expresion.CadenaLiteral) opcionesStr.add(((Expresion.CadenaLiteral)e).getValor());
+    }
+
+    if(opcionesStr.size() > 5) {
+            ManejadorErrores.agregarError("options", sqleft, sqright, "Semántico", "La pregunta de selección no debe tener más de 5 opciones.");
     }
 
     PreguntaSeleccion p = new PreguntaSeleccion(lbl, opcionesStr, null);
@@ -474,7 +469,7 @@ atributo_pregunta ::= WIDTH DOS_PUNTOS expresion:e {: RESULT = new AtributoAux("
 
 /* Bloque Opciones: Soporta la PokeAPI o una lista de strings */
 bloque_opciones ::= LLAVE_IZQ lista_cadenas_exp:lista LLAVE_DER {: RESULT = lista; :}
-              | WHO_IS_THAT_POKEMON PAR_IZQ TIPO_NUMBER COMA expresion:inicio COMA expresion:fin PAR_DER
+              | WHO_IS_THAT_POKEMON PAR_IZQ MAYUS_NUMBER COMA expresion:inicio COMA expresion:fin PAR_DER
               {:
                   List<Expresion> pokeCall = new ArrayList<>();
                   // Pasamos las expresiones evaluadas en lugar de ceros
@@ -519,7 +514,12 @@ bloque_estilos ::= CORCHETE_IZQ lista_estilos:lista CORCHETE_DER
                     if(a.nombre.equals("background color")) est.setColorFondo((String) a.valor);
                     if(a.nombre.equals("font family")) est.setFamiliaFuente((String) a.valor);
                     if(a.nombre.equals("text size")) est.setTamanoTexto((Expresion) a.valor);
-                    /* Aquí procesas border si es necesario */
+                    if(a.nombre.equals("border")) {
+                                            Object[] datosBorde = (Object[]) a.valor;
+                                            est.setBordeGrosor((Expresion) datosBorde[0]);
+                                            est.setBordeTipo((String) datosBorde[1]);
+                                            est.setBordeColor((String) datosBorde[2]);
+                                        }
                 }
                 RESULT = est;
             :};

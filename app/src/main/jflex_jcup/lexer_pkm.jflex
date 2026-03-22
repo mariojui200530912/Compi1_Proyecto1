@@ -1,4 +1,4 @@
-package com.compi1.proyecto1.analizadores; // Cambia esto a tu paquete
+package com.compi1.proyecto1.analizadores;
 
 import java_cup.runtime.*;
 import com.compi1.proyecto1.interprete.ManejadorErrores; // Reutilizamos tu caja de errores
@@ -12,13 +12,13 @@ import com.compi1.proyecto1.interprete.ManejadorErrores; // Reutilizamos tu caja
 %column
 %char
 %cup
-%ignorecase // El enunciado pide que sea case insensitive
+%ignorecase
 
 // --- MACROS ---
 LineTerminator = \r|\n|\r\n
 WhiteSpace     = {LineTerminator} | [ \t\f]
 
-// Números (enteros o decimales, positivos o negativos)
+// Numeros (enteros o decimales, positivos o negativos)
 Numero = -?[0-9]+(\.[0-9]+)?
 
 // Cadenas de texto entre comillas
@@ -27,11 +27,11 @@ Cadena = \"[^\"]*\"
 // Colores en formato Hexadecimal (#FFFFFF)
 ColorHex = #[0-9a-fA-F]+
 
-// Colores RGB (<10,10,10>). Lo atrapamos todo junto para que no se confunda con las etiquetas < y >
+// Colores RGB (<10,10,10>).
 ColorRGB = "<"[ ]*[0-9]+[ ]*","[ ]*[0-9]+[ ]*","[ ]*[0-9]+[ ]*">"
 
 %{
-    // Función para generar los tokens para CUP
+
     private Symbol symbol(int type) {
         return new Symbol(type, yyline + 1, yycolumn + 1);
     }
@@ -87,8 +87,8 @@ ColorRGB = "<"[ ]*[0-9]+[ ]*","[ ]*[0-9]+[ ]*","[ ]*[0-9]+[ ]*">"
     "DOUBLE"           { return symbol(sym_pkm.DOUBLE_TYPE, yytext()); }
 
     // Colores por nombre
-    "BLACK"|"WHITE"|"RED"|"GREEN"|"BLUE"|"YELLOW"|"CYAN"|"MAGENTA"|"GRAY"
-                       { return symbol(sym_pkm.COLOR_NAME, yytext()); }
+    "BLACK"|"WHITE"|"RED"|"GREEN"|"BLUE"|"YELLOW"|"PURPLE"|"SKY"|"CYAN"|"MAGENTA"|"GRAY"
+                           { return symbol(sym_pkm.COLOR_NAME, yytext()); }
 
     /* --- METADATOS (Palabras que aparecen entre los ###) --- */
     "Author:"|"Fecha:"|"Hora:"|"Description:"|"Total de Secciones:"|"Total de Preguntas:"|"Abiertas:"|"Desplegables:"|"Selección:"|"Múltiples:"
@@ -97,18 +97,18 @@ ColorRGB = "<"[ ]*[0-9]+[ ]*","[ ]*[0-9]+[ ]*","[ ]*[0-9]+[ ]*">"
     /* --- TIPOS DE DATOS --- */
     {Numero}   { return symbol(sym_pkm.NUMERO, yytext()); }
     {Cadena}   {
-        // Le quitamos las comillas a la cadena para que pase limpia al parser
+
         String cadenaLimpia = yytext().substring(1, yytext().length() - 1);
         return symbol(sym_pkm.CADENA, cadenaLimpia);
     }
     {ColorHex} { return symbol(sym_pkm.HEX_COLOR, yytext()); }
     {ColorRGB} { return symbol(sym_pkm.RGB_COLOR, yytext()); }
 
-    /* --- IDENTIFICADORES Y TEXTO SUELTO (Para los nombres de autor, descripción, etc.) --- */
-    [a-zA-Z_0-9\/\.:@]+ { return symbol(sym_pkm.TEXTO_LIBRE, yytext()); }
+    /* --- IDENTIFICADORES Y TEXTO SUELTO  --- */
+    [a-zA-Z_0-9\.:@]+ ("/" [a-zA-Z_0-9\.:@]+)* { return symbol(sym_pkm.TEXTO_LIBRE, yytext()); }
 }
 
-/* --- MANEJO DE ERRORES LÉXICOS --- */
+/* --- MANEJO DE ERRORES LEXICOS --- */
 [^] {
     ManejadorErrores.agregarError(yytext(), yyline + 1, yycolumn + 1, "Léxico PKM", "Símbolo no reconocido en el archivo .pkm");
     return symbol(sym_pkm.error, yytext());

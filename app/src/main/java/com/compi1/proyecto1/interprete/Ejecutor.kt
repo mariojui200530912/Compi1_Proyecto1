@@ -4,10 +4,6 @@ import com.compi1.proyecto1.modelos.*
 
 class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluador) {
 
-    /**
-     * Recorre una lista de instrucciones y devuelve únicamente los componentes
-     * visuales que deben dibujarse en la pantalla de Android.
-     */
     fun ejecutar(instrucciones: List<Instruccion>): List<ComponenteVisual> {
         val componentesA_Dibujar = mutableListOf<ComponenteVisual>()
 
@@ -41,20 +37,17 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
                     } else {
                         val preguntaOriginal = valorVariable // Ya es nuestro componente
 
-                        // 1. Evaluamos los argumentos que pasaron en el draw()
+                        // Evaluamos los argumentos que pasaron en el draw()
                         val valoresArgumentos = instruccion.argumentos.map {
                             (evaluador.evaluar(it) as? Double) ?: 0.0
                         }.toMutableList()
 
-                        // 2. Clonamos la pregunta e inyectamos los comodines
                         val preguntaListaParaDibujar = clonarEInyectar(preguntaOriginal, valoresArgumentos)
 
-                        // 3. Verificamos si sobraron argumentos
                         if (valoresArgumentos.isNotEmpty()) {
                             ManejadorErrores.agregarError("Semántico", 0, 0, "Semántico", "Sobran parámetros en ${instruccion.id}.draw().")
                         }
 
-                        // 4. ¡Añadimos la pregunta lista a nuestra lista de dibujado!
                         componentesA_Dibujar.add(preguntaListaParaDibujar)
                     }
                 }
@@ -80,7 +73,6 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
                             }
                         }
 
-                        // Si ninguno fue verdadero, ejecutar el ELSE
                         if (!bloqueEjecutado && instruccion.bloqueElse != null) {
                             componentesA_Dibujar.addAll(ejecutar(instruccion.bloqueElse))
                         }
@@ -110,21 +102,29 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
                 }
 
                 is SentenciaForRango -> {
-                    val inicio = (evaluador.evaluar(instruccion.rangoInicio) as? Double) ?: 0.0
-                    val fin = (evaluador.evaluar(instruccion.rangoFin) as? Double) ?: 0.0
+                    // ✨ CORRECCIÓN 1: Usamos 'continue' en lugar de 'return@forEach'
+                    val inicio = evaluador.evaluar(instruccion.rangoInicio) as? Double ?: continue
+                    val fin = evaluador.evaluar(instruccion.rangoFin) as? Double ?: continue
 
-                    // Se declara la variable asumiendo el tipo number
-                    if (tabla.obtenerVariable(instruccion.variable) == null) {
-                        tabla.declararVariable("number", instruccion.variable, inicio)
+                    val nombreVar = instruccion.variable
+
+                    // MAGIA: Si la variable (ej: 'i') no existe, la declaramos automáticamente
+                    if (!tabla.existeVariable(nombreVar)) {
+                        tabla.declararVariable("number", nombreVar, inicio)
                     } else {
-                        tabla.asignarVariable(instruccion.variable, inicio)
+                        tabla.asignarVariable(nombreVar, inicio)
                     }
 
-                    var iterador = inicio
-                    while (iterador <= fin) {
-                        tabla.asignarVariable(instruccion.variable, iterador)
-                        componentesA_Dibujar.addAll(ejecutar(instruccion.bloque))
-                        iterador++
+                    // Ejecutamos el ciclo respetando el rango
+                    var actual = inicio
+                    while (actual <= fin) {
+                        tabla.asignarVariable(nombreVar, actual) // Actualizamos el valor de 'i'
+
+                        val resultadoBloque = ejecutar(instruccion.bloque)
+                        // ✨ CORRECCIÓN 2: Usamos tu lista real 'componentesA_Dibujar'
+                        componentesA_Dibujar.addAll(resultadoBloque)
+
+                        actual++
                     }
                 }
 
@@ -153,16 +153,12 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
         return componentesA_Dibujar
     }
 
-    // =========================================================================
-    //  MÉTODOS AUXILIARES PARA LOS COMODINES DE LAS VARIABLES SPECIAL
-    // =========================================================================
+    //  METODOS AUXILIARES PARA LOS COMODINES DE LAS VARIABLES SPECIAL
 
     private fun clonarEInyectar(pregunta: ComponenteVisual, valores: MutableList<Double>): ComponenteVisual {
-        // Reemplazamos los comodines en el width y height (que aplican a todas las preguntas)
         val w = inyectarComodines(pregunta.width, valores)
         val h = inyectarComodines(pregunta.height, valores)
 
-        // Clonamos el objeto dependiendo de su tipo específico para no arruinar la variable original en memoria
         return when (pregunta) {
             is PreguntaAbierta -> PreguntaAbierta(pregunta.label).apply {
                 width = w; height = h; estilo = pregunta.estilo
@@ -193,7 +189,7 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
                     Expresion.NumeroLiteral(0.0) // Valor por defecto para que no explote
                 }
             }
-            // Si es una operación, buscamos recursivamente en sus ramas izquierda y derecha
+
             is Expresion.OperacionAritmetica -> Expresion.OperacionAritmetica(
                 inyectarComodines(exp.izq, valores)!!, exp.operador, inyectarComodines(exp.der, valores)!!
             )
@@ -206,10 +202,13 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
             is Expresion.NegacionLogica -> Expresion.NegacionLogica(
                 inyectarComodines(exp.expresion, valores)!!
             )
+            is Expresion.MenosUnario -> Expresion.MenosUnario(
+                inyectarComodines(exp.expresion, valores)!!
+            )
             is Expresion.LlamadaPokemon -> Expresion.LlamadaPokemon(
                 inyectarComodines(exp.rangoInicio, valores)!!, inyectarComodines(exp.rangoFin, valores)!!
             )
-            else -> exp // Si es un Numero, Variable o Cadena, lo devolvemos tal cual
+            else -> exp
         }
     }
 }

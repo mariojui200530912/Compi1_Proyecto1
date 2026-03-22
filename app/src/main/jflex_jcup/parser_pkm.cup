@@ -6,7 +6,7 @@ import java.util.List;
 import com.compi1.proyecto1.modelos.*;
 import com.compi1.proyecto1.interprete.ManejadorErrores;
 
-/* --- CONFIGURACIÓN DEL PARSER --- */
+/* --- CONFIGURACION DEL PARSER --- */
 parser code {:
     public String revertirEmojis(String texto) {
         if (texto == null) return "";
@@ -32,7 +32,7 @@ parser code {:
     }
 :}
 
-/* --- DECLARACIÓN DE TERMINALES --- */
+/* --- DECLARACION DE TERMINALES --- */
 terminal String HASH_TRES, MENOR_QUE, MAYOR_QUE, BARRA, IGUAL, COMA, LLAVE_IZQ, LLAVE_DER;
 terminal String STYLE, SECTION, CONTENT, TABLE, LINE, ELEMENT, OPEN, DROP, SELECT, MULTIPLE, TEXT;
 terminal String COLOR, BG_COLOR, FONT_FAMILY, TEXT_SIZE, BORDER;
@@ -40,7 +40,7 @@ terminal String VERTICAL, HORIZONTAL, MONO, SANS_SERIF, CURSIVE, DOTTED, DOUBLE_
 terminal String META_KEY;
 terminal String NUMERO, CADENA, HEX_COLOR, RGB_COLOR, TEXTO_LIBRE;
 
-/* --- DECLARACIÓN DE NO TERMINALES --- */
+/* --- DECLARACION DE NO TERMINALES --- */
 non terminal List<Instruccion> inicio, lista_componentes;
 non terminal Object metadatos, ignorar_meta, token_cualquiera;
 non terminal Instruccion componente;
@@ -52,7 +52,7 @@ non terminal PreguntaDesplegable pregunta_desplegable;
 non terminal PreguntaSeleccion pregunta_seleccion;
 non terminal PreguntaMultiple pregunta_multiple;
 
-// Estilos (Ya no hay opcional_estilos)
+// Estilos
 non terminal Estilo bloque_estilos, lista_estilos;
 non terminal Object[] estilo_item;
 non terminal String valor_color, orientacion, fuente, tipo_linea;
@@ -86,7 +86,7 @@ componente ::= seccion:s {: RESULT = s; :}
              | pregunta_seleccion:p {: RESULT = p; :}
              | pregunta_multiple:p {: RESULT = p; :} ;
 
-/* --- 1. SECCIÓN --- */
+/* --- SECCIÓN --- */
 seccion ::= MENOR_QUE SECTION IGUAL NUMERO:w COMA NUMERO:h COMA NUMERO:x COMA NUMERO:y COMA orientacion:o MAYOR_QUE
             bloque_estilos:e
             MENOR_QUE CONTENT MAYOR_QUE
@@ -118,7 +118,7 @@ seccion ::= MENOR_QUE SECTION IGUAL NUMERO:w COMA NUMERO:h COMA NUMERO:x COMA NU
 
 orientacion ::= VERTICAL {: RESULT = "VERTICAL"; :} | HORIZONTAL {: RESULT = "HORIZONTAL"; :} ;
 
-/* --- 2. TABLAS --- */
+/* --- TABLAS --- */
 tabla ::= MENOR_QUE TABLE IGUAL NUMERO:w COMA NUMERO:h COMA NUMERO:x COMA NUMERO:y MAYOR_QUE
           bloque_estilos:e
           MENOR_QUE CONTENT MAYOR_QUE
@@ -161,7 +161,7 @@ lista_elementos_linea ::= lista_elementos_linea:le celda:c {: le.addAll(c); RESU
 celda ::= MENOR_QUE ELEMENT MAYOR_QUE lista_componentes:c MENOR_QUE BARRA ELEMENT MAYOR_QUE {: RESULT = c; :}
         | MENOR_QUE ELEMENT MAYOR_QUE MENOR_QUE BARRA ELEMENT MAYOR_QUE {: RESULT = new ArrayList<Instruccion>(); :} ;
 
-/* --- TEXTO GENERAL (<text=...>) --- */
+/* --- TEXTO GENERAL  --- */
 texto_general ::= MENOR_QUE TEXT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:txt BARRA MAYOR_QUE
                   {:
                       TextoGeneral t = new TextoGeneral(parser.revertirEmojis(txt));
@@ -188,7 +188,7 @@ texto_general ::= MENOR_QUE TEXT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:txt BA
                       RESULT = t;
                   :} ;
 
-/* --- 3. PREGUNTA ABIERTA --- */
+/* --- PREGUNTA ABIERTA --- */
 pregunta_abierta ::= MENOR_QUE OPEN IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl BARRA MAYOR_QUE
                      {:
                          PreguntaAbierta p = new PreguntaAbierta(parser.revertirEmojis(lbl));
@@ -215,7 +215,7 @@ pregunta_abierta ::= MENOR_QUE OPEN IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl
                          RESULT = p;
                      :} ;
 
-/* --- 4. PREGUNTA DESPLEGABLE (<drop=...>) --- */
+/* --- PREGUNTA DESPLEGABLE (<drop=...>) --- */
 pregunta_desplegable ::= MENOR_QUE DROP IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_exp:ops LLAVE_DER COMA NUMERO:c BARRA MAYOR_QUE
                          {:
                              Expresion correct = null;
@@ -248,7 +248,7 @@ pregunta_desplegable ::= MENOR_QUE DROP IGUAL NUMERO:w COMA NUMERO:h COMA CADENA
                              RESULT = p;
                          :} ;
 
-/* --- 5. PREGUNTA SELECCIÓN (<select=...>) --- */
+/* --- PREGUNTA SELECCIÓN (<select=...>) --- */
 pregunta_seleccion ::= MENOR_QUE SELECT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA NUMERO:c BARRA MAYOR_QUE
                        {:
                            Expresion correct = null;
@@ -281,7 +281,7 @@ pregunta_seleccion ::= MENOR_QUE SELECT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA
                            RESULT = p;
                        :} ;
 
-/* --- 6. PREGUNTA MÚLTIPLE (<multiple=...>) --- */
+/* --- 6. PREGUNTA MULTIPLE (<multiple=...>) --- */
 pregunta_multiple ::= MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA LLAVE_IZQ lista_numeros_exp:corrs LLAVE_DER BARRA MAYOR_QUE
                       {:
                           PreguntaMultiple p = new PreguntaMultiple(parser.revertirEmojis(lbl), ops, corrs);

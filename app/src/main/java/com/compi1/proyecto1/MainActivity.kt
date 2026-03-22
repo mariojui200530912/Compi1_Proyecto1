@@ -52,9 +52,12 @@ class MainActivity : ComponentActivity() {
 
     // --- VARIABLES DE LÓGICA ---
     private var arbolASTActual: List<Instruccion>? = null
+    private var arbolFinalGlobal: List<Instruccion>? = null
     private var tipoArchivoAGuardar = ""
     private var modoActual = "FORM"
     private var generadorActual: GeneradorVistas? = null
+    private var autorPKM = "Usuario"
+    private var tituloPKM = "Formulario"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -150,6 +153,7 @@ class MainActivity : ComponentActivity() {
                         }
                         arbolFinal = arbolPKM
                         arbolASTActual = arbolFinal
+                        arbolFinalGlobal = arbolFinal
                     } else {
                         val parser = Sintactico(Lexer(StringReader(codigoFuente)))
                         val arbolForm = parser.parse().value as? List<Instruccion>
@@ -159,10 +163,11 @@ class MainActivity : ComponentActivity() {
                         }
                         arbolFinal = Ejecutor(tablaSimbolos, evaluador).ejecutar(arbolForm)
                         arbolASTActual = arbolForm
-                        if (tablaSimbolos.erroresSemanticos.isNotEmpty()) {
+                        arbolFinalGlobal = arbolFinal
+                        if (tablaSimbolos.erroresSemanticos.isNotEmpty() || ManejadorErrores.errores.isNotEmpty()) {
                             tablaSimbolos.erroresSemanticos.forEach { ManejadorErrores.agregarError("Ejecución", 0, 0, "Semántico", it) }
                             mostrarErroresEnHiloPrincipal()
-                            return@launch
+                            return@launch // Cancela el Compilacion exitosa
                         }
                     }
 
@@ -246,10 +251,43 @@ class MainActivity : ComponentActivity() {
             return
         }
 
+        if (tipo == "PKM") {
+            // Si es PKM, lanzamos el cuadro de diálogo antes de guardar
+            mostrarDialogoDatosPKM()
+        } else {
+            // Si es FORM, guardamos directo
+            lanzarIntentGuardado("codigo.form")
+        }
+    }
+
+    private fun mostrarDialogoDatosPKM() {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(60, 40, 60, 40)
+        }
+        val inputAutor = EditText(this).apply { hint = "Ingresa el Autor" }
+        val inputTitulo = EditText(this).apply { hint = "Título / Descripción" }
+
+        layout.addView(inputAutor)
+        layout.addView(inputTitulo)
+
+        AlertDialog.Builder(this)
+            .setTitle("Datos del Archivo PKM")
+            .setView(layout)
+            .setPositiveButton("Guardar") { _, _ ->
+                autorPKM = inputAutor.text.toString().ifBlank { "Anonimo" }
+                tituloPKM = inputTitulo.text.toString().ifBlank { "Sin titulo" }
+                lanzarIntentGuardado("form.pkm")
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun lanzarIntentGuardado(nombreArchivo: String) {
         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
             type = "*/*"
-            putExtra(Intent.EXTRA_TITLE, if (tipo == "FORM") "codigo.form" else "form.pkm")
+            putExtra(Intent.EXTRA_TITLE, nombreArchivo)
         }
         guardarArchivoLauncher.launch(intent)
     }
@@ -262,7 +300,7 @@ class MainActivity : ComponentActivity() {
                     val texto = if (tipoArchivoAGuardar == "FORM") {
                         editorCodigo.text.toString()
                     } else {
-                        ExportadorPKM(Evaluador(TablaSimbolos())).generarArchivoPKM(arbolASTActual!!, "Usuario", "Fecha")
+                        ExportadorPKM(Evaluador(TablaSimbolos())).generarArchivoPKM(arbolFinalGlobal!!, autorPKM, tituloPKM)
                     }
                     outputStream?.write(texto.toByteArray())
                     outputStream?.close()
@@ -280,7 +318,7 @@ class MainActivity : ComponentActivity() {
             return
         }
         Toast.makeText(this, "Subiendo formulario...", Toast.LENGTH_SHORT).show()
-        val textoPKM = ExportadorPKM(Evaluador(TablaSimbolos())).generarArchivoPKM(arbolASTActual!!, "Usuario", "Nube")
+        val textoPKM = ExportadorPKM(Evaluador(TablaSimbolos())).generarArchivoPKM(arbolFinalGlobal!!, "Usuario", "Nube")
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {

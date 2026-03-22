@@ -56,6 +56,7 @@ class GeneradorVistas(
         val vista: View = when (comp) {
             is Seccion -> crearVistaSeccion(comp)
             is TextoGeneral -> crearVistaTexto(comp)
+            is Tabla -> crearVistaTabla(comp)
             is PreguntaAbierta -> crearVistaPreguntaAbierta(comp)
             is PreguntaSeleccion -> crearVistaPreguntaSeleccion(comp)
             is PreguntaDesplegable -> crearVistaPreguntaDesplegable(comp)
@@ -115,11 +116,6 @@ class GeneradorVistas(
 
         if (pregunta.opciones.size > 5) {
             // Mostramos una advertencia flotante al usuario
-            Toast.makeText(
-                context,
-                "Advertencia: La pregunta '${pregunta.label}' tiene más de 5 opciones.",
-                Toast.LENGTH_LONG
-            ).show()
 
             AlertDialog.Builder(context)
                 .setTitle("Advertencia")
@@ -199,43 +195,97 @@ class GeneradorVistas(
         return contenedor
     }
 
-    // --- MÉTODOS AUXILIARES DE ESTILO ---
+    private fun crearVistaTabla(tabla: Tabla): View {
+        // Contenedor principal de la tabla
+        val layoutTabla = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        for (fila in tabla.filas) {
+            // Cada fila de la matriz
+            val layoutFila = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                // ✨ MAGIA: El alto de la fila es 0dp, pero tiene peso 1.
+                // Esto obliga a que todas las filas midan exactamente lo mismo de alto.
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    0,
+                    1f
+                )
+            }
+
+            for (celda in fila) {
+
+                val contenedorCelda = LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
+                    setPadding(16, 16, 16, 16)
+
+                    // Extraemos las configuraciones (o usamos valores por defecto si no mandaron estilos)
+                    val grosorAst = tabla.estilo?.bordeGrosor?.let { (evaluador.evaluar(it) as? Double)?.toInt() } ?: 3
+                    val colorHex = tabla.estilo?.bordeColor ?: "BLACK"
+                    val tipoBorde = tabla.estilo?.bordeTipo ?: "LINE"
+
+                    val scale = context.resources.displayMetrics.density
+                    val strokeWidth = (grosorAst * scale).toInt()
+                    val strokeColor = traducirColor(colorHex)
+
+                    val border = android.graphics.drawable.GradientDrawable()
+                    border.setColor(Color.TRANSPARENT) // Fondo transparente
+
+                    if (tipoBorde == "DOTTED") {
+                        border.setStroke(strokeWidth, strokeColor, 10f * scale, 10f * scale)
+                    } else {
+                        border.setStroke(strokeWidth, strokeColor)
+                    }
+
+                    background = border
+                }
+
+                if (celda is ComponenteVisual) {
+                    val vistaCelda = renderizarComponente(celda)
+                    if (vistaCelda != null) {
+                        val params = vistaCelda.layoutParams as LinearLayout.LayoutParams
+                        params.setMargins(0, 0, 0, 0)
+                        vistaCelda.layoutParams = params
+
+                        contenedorCelda.addView(vistaCelda)
+                    }
+                }
+                layoutFila.addView(contenedorCelda)
+            }
+            layoutTabla.addView(layoutFila)
+        }
+        return layoutTabla
+    }
+
+    // --- METODOS AUXILIARES DE ESTILO ---
     private fun aplicarEstilosBase(vista: View, comp: ComponenteVisual) {
+        // ✨ MAGIA: Escala de densidad para pantallas HD de Android
+        val scale = context.resources.displayMetrics.density
+
         val widthEval = comp.width?.let { evaluador.evaluar(it) as? Double }
         val heightEval = comp.height?.let { evaluador.evaluar(it) as? Double }
 
-        val params = LinearLayout.LayoutParams(
-            widthEval?.toInt() ?: ViewGroup.LayoutParams.MATCH_PARENT,
-            heightEval?.toInt() ?: ViewGroup.LayoutParams.WRAP_CONTENT
-        )
-        params.setMargins(16, 16, 16, 16)
+        // Multiplicamos por la escala para convertir a DP reales
+        val wPix = if (widthEval != null) (widthEval * scale).toInt() else ViewGroup.LayoutParams.MATCH_PARENT
+        val hPix = if (heightEval != null) (heightEval * scale).toInt() else ViewGroup.LayoutParams.WRAP_CONTENT
+
+        val params = LinearLayout.LayoutParams(wPix, hPix)
+        val margen = (8 * scale).toInt() // Margen también escalado
+        params.setMargins(margen, margen, margen, margen)
         vista.layoutParams = params
 
         comp.estilo?.let { estilo ->
-
-            // 1. Color de Fondo
-            estilo.colorFondo?.let { colorTxt ->
-                vista.setBackgroundColor(traducirColor(colorTxt))
-            }
-
-            // Si la vista principal es un contenedor de pregunta (LinearLayout),
-            // el título es el primer hijo (getChildAt(0)).
-            // Si es un TextoGeneral, la vista misma es el TextView.
+            estilo.colorFondo?.let { colorTxt -> vista.setBackgroundColor(traducirColor(colorTxt)) }
             val textViewPrincipal = if (vista is TextView) vista else if (vista is LinearLayout && vista.childCount > 0) vista.getChildAt(0) as? TextView else null
 
             if (textViewPrincipal != null) {
-                // 2. Color de Texto
-                estilo.colorTexto?.let {
-                    textViewPrincipal.setTextColor(traducirColor(it))
-                }
-
-                // 3. Tamaño de Texto
+                estilo.colorTexto?.let { textViewPrincipal.setTextColor(traducirColor(it)) }
                 estilo.tamanoTexto?.let {
                     val size = (evaluador.evaluar(it) as? Double)?.toFloat()
                     if (size != null) textViewPrincipal.textSize = size
                 }
-
-                // 4. Familia de Fuente
                 estilo.familiaFuente?.let {
                     when (it.uppercase()) {
                         "MONO" -> textViewPrincipal.typeface = Typeface.MONOSPACE

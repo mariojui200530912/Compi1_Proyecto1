@@ -30,29 +30,24 @@ import com.compi1.proyecto1.interprete.ManejadorErrores;
     }
 %}
 
-/* ==========================================================================
-   MACROS (Expresiones Regulares)
-   ========================================================================== */
+/* =======  MACROS (Expresiones Regulares) ====== */
 
-// 1. Espacios y Comentarios
+// Espacios y Comentarios
 SaltoLinea      = \r|\n|\r\n
 EspacioBlanco   = {SaltoLinea} | [ \t\f]
 ComentarioLinea = "$" [^\r\n]* {SaltoLinea}?
 ComentarioMulti = "/*" [^*]* ("*" [^/][^*]*)* "*/"
 
-// 2. Componentes básicos
+// Componentes básicos
 Numero         = [:digit:]+ (\. [:digit:]+)?
-// Un identificador empieza con letra o guion bajo, seguido de letras, números o guiones bajos
 Identificador  = [:jletter:] [:jletterdigit:]*
 
-// 3. Colores
+// Colores
 ColorHex       = "#" ([:digit:] | [a-fA-F]){6}
 
 %%
 
-/* ==========================================================================
-   REGLAS LÉXICAS
-   ========================================================================== */
+/* =======   REGLAS LEXICAS ======== */
 <YYINITIAL> {
 
     /* Ignorar espacios y comentarios */
@@ -60,7 +55,7 @@ ColorHex       = "#" ([:digit:] | [a-fA-F]){6}
     {ComentarioLinea}   { /* Ignorar */ }
     {ComentarioMulti}   { /* Ignorar */ }
 
-    /* --- Componentes Principales (MAYÚSCULAS) --- */
+    /* --- Componentes Principales  --- */
     "SECTION"           { return symbol(sym.SECTION); }
     "TABLE"             { return symbol(sym.TABLE); }
     "TEXT"              { return symbol(sym.TEXT); }
@@ -69,7 +64,7 @@ ColorHex       = "#" ([:digit:] | [a-fA-F]){6}
     "SELECT_QUESTION"   { return symbol(sym.SELECT_QUESTION); }
     "MULTIPLE_QUESTION" { return symbol(sym.MULTIPLE_QUESTION); }
 
-    /* --- Atributos de los componentes (minúsculas según enunciado) --- */
+    /* --- Atributos de los componentes  --- */
     "width"             { return symbol(sym.WIDTH); }
     "height"            { return symbol(sym.HEIGHT); }
     "pointX"            { return symbol(sym.POINTX); }
@@ -83,7 +78,7 @@ ColorHex       = "#" ([:digit:] | [a-fA-F]){6}
     "correct"           { return symbol(sym.CORRECT); }
     "who_is_that_pokemon" { return symbol(sym.WHO_IS_THAT_POKEMON); }
 
-    /* --- Valores Constantes / Enums (MAYÚSCULAS) --- */
+    /* --- Valores Constantes / Enums  --- */
     "VERTICAL"          { return symbol(sym.VERTICAL); }
     "HORIZONTAL"        { return symbol(sym.HORIZONTAL); }
     "MONO"              { return symbol(sym.MONO); }
@@ -92,7 +87,7 @@ ColorHex       = "#" ([:digit:] | [a-fA-F]){6}
     "LINE"              { return symbol(sym.LINE); }
     "DOTTED"            { return symbol(sym.DOTTED); }
     "DOUBLE"            { return symbol(sym.DOUBLE); }
-
+    "NUMBER"            { return symbol(sym.MAYUS_NUMBER); }
 
     /* --- Tipos de Datos y Variables --- */
     "number"            { return symbol(sym.TIPO_NUMBER); }
@@ -118,7 +113,7 @@ ColorHex       = "#" ([:digit:] | [a-fA-F]){6}
     "BLACK"             { return symbol(sym.COLOR_BLACK); }
     "WHITE"             { return symbol(sym.COLOR_WHITE); }
 
-    /* --- Operadores Aritméticos --- */
+    /* --- Operadores Aritmeticos --- */
     "+"                 { return symbol(sym.MAS); }
     "-"                 { return symbol(sym.MENOS); }
     "*"                 { return symbol(sym.POR); }
@@ -126,7 +121,7 @@ ColorHex       = "#" ([:digit:] | [a-fA-F]){6}
     "^"                 { return symbol(sym.POTENCIA); }
     "%"                 { return symbol(sym.MODULO); }
 
-    /* --- Operadores de Comparación --- */
+    /* --- Operadores de Comparacion --- */
     ">"                 { return symbol(sym.MAYOR); }
     ">="                { return symbol(sym.MAYOR_IGUAL); }
     "<"                 { return symbol(sym.MENOR); }
@@ -134,12 +129,12 @@ ColorHex       = "#" ([:digit:] | [a-fA-F]){6}
     "=="                { return symbol(sym.IGUALDAD); }
     "!!"                { return symbol(sym.DIFERENTE); }
 
-    /* --- Operadores Lógicos --- */
+    /* --- Operadores Logicos --- */
     "||"                { return symbol(sym.OR); }
     "&&"                { return symbol(sym.AND); }
     "~"                 { return symbol(sym.NOT); }
 
-    /* --- Símbolos de Agrupación y Puntuación --- */
+    /* --- Simbolos de Agrupacion y Puntuacion --- */
     "("                 { return symbol(sym.PAR_IZQ); }
     ")"                 { return symbol(sym.PAR_DER); }
     "["                 { return symbol(sym.CORCHETE_IZQ); }
@@ -168,6 +163,7 @@ ColorHex       = "#" ([:digit:] | [a-fA-F]){6}
     {Numero}            { return symbol(sym.NUMERO, yytext()); }
     {Identificador}     { return symbol(sym.IDENTIFICADOR, yytext()); }
 
+
 }
 
 <ESTADO_CADENA> {
@@ -178,8 +174,7 @@ ColorHex       = "#" ([:digit:] | [a-fA-F]){6}
         else return symbol(sym.CADENA, cadenaConstruida.toString());
     }
 
-    // --- Traducción y Separación de Emojis ---
-    // Si es editor, devuelve el token 997 (Emoji literal). Si es CUP, lo traduce y lo guarda.
+    // --- Traduccion y Separacion de Emojis ---
     "@[:" ")"+ "]" | "@[:smile:]"      { if(modoEditor) return symbol(997, yytext()); else cadenaConstruida.append("😀"); }
     "@[:" "("+ "]" | "@[:sad:]"        { if(modoEditor) return symbol(997, yytext()); else cadenaConstruida.append("😢"); }
     "@[:" "|"+ "]" | "@[:serious:]"    { if(modoEditor) return symbol(997, yytext()); else cadenaConstruida.append("😐"); }
@@ -213,7 +208,7 @@ ColorHex       = "#" ([:digit:] | [a-fA-F]){6}
     }
 }
 
-/* --- Manejo de Errores Léxicos --- */
+/* --- Manejo de Errores Lexicos --- */
 [^] {
           ManejadorErrores.agregarError(yytext(), yyline + 1, yycolumn + 1, "Léxico", "Símbolo no reconocido");
 }

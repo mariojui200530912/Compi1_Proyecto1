@@ -8,84 +8,86 @@ package com.compi1.proyecto1.analizadores;
 /** CUP generated class containing symbol constants. */
 public class sym {
   /* terminals */
-  public static final int HORIZONTAL = 68;
+  public static final int HORIZONTAL = 70;
   public static final int SELECT_QUESTION = 7;
-  public static final int IDENTIFICADOR = 78;
-  public static final int MENOR_IGUAL = 36;
+  public static final int IDENTIFICADOR = 80;
+  public static final int MENOR_IGUAL = 37;
   public static final int COLOR_WHITE = 26;
-  public static final int CORCHETE_DER = 45;
+  public static final int CORCHETE_DER = 46;
   public static final int TABLE = 3;
   public static final int TIPO_STRING = 10;
   public static final int COLOR_BLACK = 25;
-  public static final int LLAVE_IZQ = 46;
-  public static final int COLOR_HEX = 75;
+  public static final int LLAVE_IZQ = 47;
+  public static final int COLOR_HEX = 77;
   public static final int POTENCIA = 31;
-  public static final int MAYOR = 33;
+  public static final int MAYOR = 34;
   public static final int COLOR_PURPLE = 22;
-  public static final int SANS_SERIF = 70;
+  public static final int SANS_SERIF = 72;
   public static final int DROP_QUESTION = 6;
-  public static final int DIFERENTE = 38;
-  public static final int ELEMENTS = 60;
+  public static final int DIFERENTE = 39;
+  public static final int ELEMENTS = 61;
   public static final int DRAW = 12;
-  public static final int PAR_DER = 43;
+  public static final int PAR_DER = 44;
+  public static final int MAYUS_NUMBER = 68;
   public static final int OPEN_QUESTION = 5;
   public static final int POR = 29;
-  public static final int NUMERO = 76;
-  public static final int DOUBLE = 74;
-  public static final int NOT = 41;
+  public static final int NUMERO = 78;
+  public static final int DOUBLE = 76;
+  public static final int NOT = 42;
   public static final int TEXT = 4;
-  public static final int DOS_PUNTOS = 49;
-  public static final int WIDTH = 55;
-  public static final int PUNTO_COMA = 54;
-  public static final int IGUALDAD = 37;
-  public static final int STYLES = 61;
+  public static final int DOS_PUNTOS = 50;
+  public static final int WIDTH = 56;
+  public static final int PUNTO_COMA = 55;
+  public static final int IGUALDAD = 38;
+  public static final int STYLES = 62;
   public static final int DIVIDIDO = 30;
-  public static final int COMA = 48;
+  public static final int COMA = 49;
   public static final int MODULO = 32;
-  public static final int CURSIVE = 71;
-  public static final int MONO = 69;
+  public static final int CURSIVE = 73;
+  public static final int MONO = 71;
   public static final int WHILE = 15;
-  public static final int CORCHETE_IZQ = 44;
+  public static final int CORCHETE_IZQ = 45;
   public static final int DO = 16;
   public static final int FOR = 17;
-  public static final int COMODIN = 53;
-  public static final int ORIENTATION = 59;
+  public static final int COMODIN = 54;
+  public static final int ORIENTATION = 60;
   public static final int ELSE = 14;
   public static final int MENOS = 28;
   public static final int MULTIPLE_QUESTION = 8;
-  public static final int MENOR = 35;
+  public static final int MENOR = 36;
   public static final int MAS = 27;
   public static final int TIPO_NUMBER = 9;
-  public static final int CORRECT = 65;
-  public static final int CONTENT = 62;
-  public static final int PAR_IZQ = 42;
+  public static final int CORRECT = 66;
+  public static final int CONTENT = 63;
+  public static final int PAR_IZQ = 43;
   public static final int EOF = 0;
-  public static final int PUNTO = 51;
-  public static final int VERTICAL = 67;
-  public static final int LLAVE_DER = 47;
-  public static final int LINE = 72;
-  public static final int LABEL = 63;
+  public static final int PUNTO = 52;
+  public static final int VERTICAL = 69;
+  public static final int LLAVE_DER = 48;
+  public static final int LINE = 74;
+  public static final int LABEL = 64;
   public static final int IN = 18;
-  public static final int OR = 39;
+  public static final int OR = 40;
   public static final int error = 1;
   public static final int IF = 13;
   public static final int TIPO_SPECIAL = 11;
-  public static final int DOTTED = 73;
+  public static final int DOTTED = 75;
   public static final int COLOR_SKY = 23;
   public static final int COLOR_GREEN = 21;
-  public static final int HEIGHT = 56;
-  public static final int RANGO = 52;
-  public static final int ASIGNACION = 50;
-  public static final int CADENA = 77;
+  public static final int HEIGHT = 57;
+  public static final int RANGO = 53;
+  public static final int ASIGNACION = 51;
+  public static final int CADENA = 79;
   public static final int COLOR_RED = 19;
-  public static final int POINTY = 58;
-  public static final int OPTIONS = 64;
-  public static final int POINTX = 57;
-  public static final int AND = 40;
+  public static final int POINTY = 59;
+  public static final int OPTIONS = 65;
+  public static final int POINTX = 58;
+  public static final int AND = 41;
   public static final int COLOR_BLUE = 20;
+  public static final int UMINUS = 33;
   public static final int COLOR_YELLOW = 24;
-  public static final int WHO_IS_THAT_POKEMON = 66;
-  public static final int MAYOR_IGUAL = 34;
+  public static final int WHO_IS_THAT_POKEMON = 67;
+  public static final int MAYOR_IGUAL = 35;
   public static final int SECTION = 2;
   public static final String[] terminalNames = new String[] {
   "EOF",
@@ -121,6 +123,7 @@ public class sym {
   "DIVIDIDO",
   "POTENCIA",
   "MODULO",
+  "UMINUS",
   "MAYOR",
   "MAYOR_IGUAL",
   "MENOR",
@@ -155,6 +158,7 @@ public class sym {
   "OPTIONS",
   "CORRECT",
   "WHO_IS_THAT_POKEMON",
+  "MAYUS_NUMBER",
   "VERTICAL",
   "HORIZONTAL",
   "MONO",

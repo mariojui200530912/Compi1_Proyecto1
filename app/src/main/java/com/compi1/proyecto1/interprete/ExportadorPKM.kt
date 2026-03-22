@@ -24,7 +24,7 @@ class ExportadorPKM(private val evaluador: Evaluador) {
         seleccion = 0
         multiples = 0
 
-        // 2. Generamos el cuerpo primero (para que los contadores se llenen)
+        // 2. Generamos el cuerpo primero (para llenar los contadores reales)
         val cuerpoBuilder = StringBuilder()
         for (comp in componentes) {
             if (comp is ComponenteVisual) {
@@ -32,22 +32,22 @@ class ExportadorPKM(private val evaluador: Evaluador) {
             }
         }
 
-        // 3. Generamos los Metadatos ahora que tenemos los totales
         val fechaActual = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
         val horaActual = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 
+        // 3. ✨ METADATOS EXACTOS (Sin comas, sin comillas, con tildes y espacios exactos del Lexer)
         val metaBuilder = StringBuilder()
         metaBuilder.append("###\n")
-        metaBuilder.append("  \"autor\": \"$autor\",\n") // Ajustado para parecer más un metadato estándar
-        metaBuilder.append("  \"fecha\": \"$fechaActual\",\n")
-        metaBuilder.append("  \"hora\": \"$horaActual\",\n")
-        metaBuilder.append("  \"description\": \"$descripcion\",\n")
-        metaBuilder.append("  \"secciones\": $totalSecciones,\n")
-        metaBuilder.append("  \"preguntas\": $totalPreguntas,\n")
-        metaBuilder.append("  \"abiertas\": $abiertas,\n")
-        metaBuilder.append("  \"desplegables\": $desplegables,\n")
-        metaBuilder.append("  \"seleccion\": $seleccion,\n")
-        metaBuilder.append("  \"multiples\": $multiples\n")
+        metaBuilder.append("    Author: $autor\n")
+        metaBuilder.append("    Fecha: $fechaActual\n")
+        metaBuilder.append("    Hora: $horaActual\n")
+        metaBuilder.append("    Description: $descripcion\n")
+        metaBuilder.append("    Total de Secciones: $totalSecciones\n")
+        metaBuilder.append("    Total de Preguntas: $totalPreguntas\n")
+        metaBuilder.append("        Abiertas: $abiertas\n")
+        metaBuilder.append("        Desplegables: $desplegables\n")
+        metaBuilder.append("        Selección: $seleccion\n")
+        metaBuilder.append("        Múltiples: $multiples\n")
         metaBuilder.append("###\n\n")
 
         // 4. Unimos metadatos y cuerpo
@@ -58,7 +58,6 @@ class ExportadorPKM(private val evaluador: Evaluador) {
         val tab = "  ".repeat(nivel)
         val sb = StringBuilder()
 
-        // Evaluamos dimensiones (por si venían como sumas o variables en el código original)
         val w = eval(comp.width) ?: 0
         val h = eval(comp.height) ?: 0
         val estilos = generarEstilos(comp.estilo, tab + "  ")
@@ -68,7 +67,7 @@ class ExportadorPKM(private val evaluador: Evaluador) {
                 totalSecciones++
                 val pX = eval(comp.pointX) ?: 0
                 val pY = eval(comp.pointY) ?: 0
-                val orient = comp.orientation ?: "VERTICAL"
+                val orient = comp.orientation
 
                 sb.append("$tab<section=$w,$h,$pX,$pY,$orient>\n")
                 if (estilos.isNotEmpty()) sb.append(estilos)
@@ -84,11 +83,10 @@ class ExportadorPKM(private val evaluador: Evaluador) {
             }
 
             is Tabla -> {
-                // ¡AQUÍ ESTÁ EL ARREGLO PRINCIPAL PARA LAS TABLAS!
                 val pX = eval(comp.pointX) ?: 0
                 val pY = eval(comp.pointY) ?: 0
 
-                sb.append("$tab<table=$w,$h,$pX,$pY>\n") // Ahora la tabla guarda sus 4 atributos
+                sb.append("$tab<table=$w,$h,$pX,$pY>\n")
 
                 if (estilos.isNotEmpty()) sb.append(estilos)
                 sb.append("$tab  <content>\n")
@@ -98,7 +96,6 @@ class ExportadorPKM(private val evaluador: Evaluador) {
                     for (celda in fila) {
                         sb.append("$tab      <element>\n")
                         if (celda is ComponenteVisual) {
-                            // Recursividad para el elemento dentro de la celda
                             sb.append(generarComponente(celda, nivel + 4))
                         }
                         sb.append("$tab      </element>\n")
@@ -112,10 +109,8 @@ class ExportadorPKM(private val evaluador: Evaluador) {
             is TextoGeneral -> {
                 val txt = revertirEmojis(comp.content)
                 if (estilos.isEmpty()) {
-                    // Cierre en la misma línea si no hay estilos
                     sb.append("$tab<text=$w,$h,\"$txt\"/>\n")
                 } else {
-                    // Cierre con etiqueta </text> si hay estilos
                     sb.append("$tab<text=$w,$h,\"$txt\">\n")
                     sb.append(estilos)
                     sb.append("$tab</text>\n")
@@ -191,10 +186,18 @@ class ExportadorPKM(private val evaluador: Evaluador) {
         val sb = StringBuilder()
         sb.append("$tab<style>\n")
 
-        estilo.colorTexto?.let { sb.append("$tab  <color=\"$it\"/>\n") } // Le añadí comillas por seguridad al string
-        estilo.colorFondo?.let { sb.append("$tab  <bg_color=\"$it\"/>\n") } // Ajustado a bg_color según tu LexerPKM
-        estilo.familiaFuente?.let { sb.append("$tab  <font_family=\"$it\"/>\n") } // Ajustado a font_family
-        estilo.tamanoTexto?.let { sb.append("$tab  <text_size=${eval(it)}/>\n") }
+        // ✨ ETIQUETAS EXACTAS (con espacios, sin comillas en los valores para que Lexer no falle)
+        estilo.colorTexto?.let { sb.append("$tab  <color=${it.replace("\"", "")}/>\n") }
+        estilo.colorFondo?.let { sb.append("$tab  <background color=${it.replace("\"", "")}/>\n") }
+        estilo.familiaFuente?.let { sb.append("$tab  <font family=${it.replace("\"", "")}/>\n") }
+        estilo.tamanoTexto?.let { sb.append("$tab  <text size=${eval(it)}/>\n") }
+
+        if (estilo.bordeGrosor != null && estilo.bordeTipo != null && estilo.bordeColor != null) {
+            val grosor = eval(estilo.bordeGrosor) ?: 3
+            val tipo = estilo.bordeTipo?.replace("\"", "")
+            val color = estilo.bordeColor?.replace("\"", "")
+            sb.append("$tab  <border,$grosor,$tipo,$color/>\n")
+        }
 
         sb.append("$tab</style>\n")
         return sb.toString()
@@ -202,12 +205,41 @@ class ExportadorPKM(private val evaluador: Evaluador) {
 
     private fun formatOpciones(opciones: List<Expresion>): String {
         val primera = opciones.firstOrNull()
+
         if (primera is Expresion.LlamadaPokemon) {
             val i = eval(primera.rangoInicio) ?: 1
             val f = eval(primera.rangoFin) ?: 10
-            return "{WHO_IS_THAT_POKEMON(number, $i, $f)}"
+
+            val executor = java.util.concurrent.Executors.newSingleThreadExecutor()
+            val future = executor.submit(java.util.concurrent.Callable {
+                val nombres = mutableListOf<String>()
+                for (id in i..f) {
+                    try {
+                        val url = java.net.URL("https://pokeapi.co/api/v2/pokemon/$id")
+                        val con = url.openConnection() as java.net.HttpURLConnection
+                        con.requestMethod = "GET"
+                        val res = con.inputStream.bufferedReader().use { it.readText() }
+
+                        // Extraemos el nombre real del JSON
+                        val name = org.json.JSONObject(res).getString("name")
+                        nombres.add("\"$name\"")
+                    } catch (e: Exception) {
+                        // Si falla la red, ponemos un respaldo para no arruinar el archivo
+                        nombres.add("\"Pokemon $id\"")
+                    }
+                }
+                nombres.joinToString(",")
+            })
+
+            // Esperamos a que termine de procesar todos los nombres
+            val nombresUnidos = future.get()
+            executor.shutdown()
+
+            // Retorna un string perfecto para el Lexer: {"bulbasaur","ivysaur","venusaur"}
+            return "{$nombresUnidos}"
         }
 
+        // Si es una pregunta normal (sin PokeAPI), lo guarda como venía
         val textos = opciones.map { evalString(it) }
         return "{" + textos.joinToString(",") { "\"$it\"" } + "}"
     }
@@ -226,11 +258,12 @@ class ExportadorPKM(private val evaluador: Evaluador) {
         var txt = texto
         txt = txt.replace("❤️", "@[:heart:]")
         txt = txt.replace("⭐", "@[:star:]")
-        txt = txt.replace("😄", "@[:smile:]")
+        txt = txt.replace("😀", "@[:smile:]") // Cambiado a la carita real que usa JFlex
         txt = txt.replace("😢", "@[:sad:]")
         txt = txt.replace("😐", "@[:serious:]")
         txt = txt.replace("🐱", "@[:cat:]")
-        txt = txt.replace("😘", "@[:<<<<33333:]")
+        txt = txt.replace("🙂", "@[:-)]")
+        txt = txt.replace("😲", "@[:0]")
         return txt
     }
 }
