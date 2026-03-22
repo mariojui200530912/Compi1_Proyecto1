@@ -34,29 +34,48 @@ import com.compi1.proyecto1.ui.GeneradorVistas
 import java.io.StringReader
 
 class MainActivity : ComponentActivity() {
-    private lateinit var etEditorCodigo: EditText
-    private lateinit var btnCompilar: Button
-    private lateinit var btnProbar: Button
-    private lateinit var btnMenuOpciones: Button
-    private lateinit var tvConsolaErrores: TextView
+
+    // --- VARIABLES GLOBALES DE LA VISTA ---
+    private lateinit var editorCodigo: com.compi1.proyecto1.ui.EditorConLineas
+    private lateinit var viewFlipper: ViewFlipper
     private lateinit var contenedorFormulario: LinearLayout
 
+    // Botones Pantalla 0 (Editor)
+    private lateinit var btnCompilar: Button
+    private lateinit var btnProbar: Button
+    private lateinit var btnMenu: Button
+    private lateinit var btnColor: Button
+
+    // Botones Pantalla 1 (Formulario)
+    private lateinit var btnModificar: Button
+    private lateinit var btnEnviar: Button
+
+    // --- VARIABLES DE LÓGICA ---
     private var arbolASTActual: List<Instruccion>? = null
     private var tipoArchivoAGuardar = ""
     private var modoActual = "FORM"
+    private var generadorActual: GeneradorVistas? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        actionBar?.hide()
         setContentView(R.layout.activity_main)
 
-        etEditorCodigo = findViewById(R.id.etEditorCodigo)
-        btnCompilar = findViewById(R.id.btnCompilar)
-        btnProbar = findViewById(R.id.btnProbar)
-        btnMenuOpciones = findViewById(R.id.btnMenuOpciones)
-        tvConsolaErrores = findViewById(R.id.tvConsolaErrores)
+        // 1. ENLACE DE VISTAS (Evitando duplicados)
+        viewFlipper = findViewById(R.id.viewFlipper)
+        editorCodigo = findViewById(R.id.editorCodigo)
         contenedorFormulario = findViewById(R.id.contenedorFormulario)
 
-        etEditorCodigo.addTextChangedListener(object : TextWatcher {
+        btnCompilar = findViewById(R.id.btnCompilar)
+        btnProbar = findViewById(R.id.btnProbar)
+        btnMenu = findViewById(R.id.btnMenu)
+        btnColor = findViewById(R.id.btnColor)
+
+        btnModificar = findViewById(R.id.btnModificar)
+        btnEnviar = findViewById(R.id.btnEnviar)
+
+        // 2. COLOREADO DE CÓDIGO EN TIEMPO REAL
+        editorCodigo.addTextChangedListener(object : TextWatcher {
             private var isFormatting = false
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -79,42 +98,43 @@ class MainActivity : ComponentActivity() {
             }
         })
 
-        // --- MENÚ DESPLEGABLE NATIVO ---
-        btnMenuOpciones.setOnClickListener { view ->
+        // 3. MENÚ DE OPCIONES PRINCIPAL
+        btnMenu.setOnClickListener { view ->
             val popup = PopupMenu(this, view)
             popup.menu.add(0, 1, 0, "📝 Insertar Plantilla")
-            popup.menu.add(0, 2, 0, "🎨 Selector de Color")
-            popup.menu.add(0, 3, 0, "💾 Guardar .form (Teléfono)")
-            popup.menu.add(0, 4, 0, "📦 Guardar .pkm (Teléfono)")
-            popup.menu.add(0, 5, 0, "☁️ Guardar .pkm (Nube)")
+            popup.menu.add(0, 2, 0, "💾 Guardar código (.form)")
+            popup.menu.add(0, 3, 0, "📦 Guardar formulario (.pkm)")
+            popup.menu.add(0, 4, 0, "☁️ Guardar en la Nube (.pkm)")
 
             popup.setOnMenuItemClickListener { item ->
                 when (item.itemId) {
                     1 -> mostrarDialogoPlantillas()
-                    2 -> mostrarDialogoColor()
-                    3 -> iniciarGuardadoLocal("FORM")
-                    4 -> iniciarGuardadoLocal("PKM")
-                    5 -> guardarEnLaNube()
+                    2 -> iniciarGuardadoLocal("FORM")
+                    3 -> iniciarGuardadoLocal("PKM")
+                    4 -> guardarEnLaNube()
                 }
                 true
             }
             popup.show()
         }
 
-        // --- COMPILACIÓN ASÍNCRONA (SÚPER RÁPIDA) ---
+        // Botón independiente para el color (como lo pide el XML)
+        btnColor.setOnClickListener {
+            mostrarDialogoColor()
+        }
+
+        // 4. LÓGICA DE COMPILACIÓN ASÍNCRONA
         btnCompilar.setOnClickListener {
-            val codigoFuente = etEditorCodigo.text.toString()
+            val codigoFuente = editorCodigo.text.toString()
             if (codigoFuente.trim().isEmpty()) {
                 Toast.makeText(this, "El editor está vacío", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            Toast.makeText(this, "Compilando en segundo plano...", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Compilando...", Toast.LENGTH_SHORT).show()
             contenedorFormulario.removeAllViews()
-            tvConsolaErrores.visibility = View.GONE
             ManejadorErrores.limpiar()
 
-            // Lanzamos la compilación matemática pesada en un hilo de fondo
             lifecycleScope.launch(Dispatchers.Default) {
                 try {
                     val tablaSimbolos = TablaSimbolos()
@@ -146,61 +166,83 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // Regresamos al hilo de la pantalla para dibujar las vistas
+                    // Regresamos al hilo principal para dibujar
                     withContext(Dispatchers.Main) {
-                        val vistaFinal = GeneradorVistas(this@MainActivity, evaluador).generarFormulario(arbolFinal)
+                        val generador = GeneradorVistas(this@MainActivity, evaluador)
+                        this@MainActivity.generadorActual = generador // ✨ AHORA ES 100% EXPLÍCITO ✨
+                        val vistaFinal = generador.generarFormulario(arbolFinal)
                         contenedorFormulario.addView(vistaFinal)
-                        Toast.makeText(this@MainActivity, "¡Formulario generado!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, "¡Compilación Exitosa! Todo listo para probar.", Toast.LENGTH_SHORT).show()
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    mostrarErroresEnHiloPrincipal()
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@MainActivity, "Error en compilación: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
                 }
             }
         }
 
-        // --- BOTÓN PROBAR (CON SEGURO CONTRA ERRORES) ---
+        // 5. TRANSICIONES DEL VIEW FLIPPER
         btnProbar.setOnClickListener {
-            if (arbolASTActual == null) {
-                Toast.makeText(this, "Primero compila sin errores", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            try {
-                val exportador = ExportadorPKM(Evaluador(TablaSimbolos()))
-                val textoPKM = exportador.generarArchivoPKM(arbolASTActual!!, "Temp", "Temp")
-
-                val intent = Intent(this, LlenarFormularioActivity::class.java)
-                intent.putExtra("PKM_DATA", textoPKM)
-                startActivity(intent)
-            } catch (e: Exception) {
-                Toast.makeText(this, "Error al abrir prueba: Asegúrate de registrar LlenarFormularioActivity en el Manifest", Toast.LENGTH_LONG).show()
+            if (ManejadorErrores.errores.isNotEmpty()) {
+                Toast.makeText(this, "Corrige los errores antes de probar", Toast.LENGTH_SHORT).show()
+            } else if (contenedorFormulario.childCount == 0 || arbolASTActual == null) {
+                Toast.makeText(this, "Primero debes compilar el código", Toast.LENGTH_SHORT).show()
+            } else {
+                // Pasamos a la pantalla del formulario (índice 1)
+                viewFlipper.displayedChild = 1
             }
         }
 
+        btnModificar.setOnClickListener {
+            // Regresamos a la pantalla del editor (índice 0)
+            viewFlipper.displayedChild = 0
+        }
+
+        btnEnviar.setOnClickListener {
+            if (this@MainActivity.generadorActual != null) {
+                this@MainActivity.generadorActual?.calificarFormulario()
+            } else {
+                Toast.makeText(this, "No hay formulario activo para calificar.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // 6. RECUPERAR DATOS DEL INTENT (Si vienes de abrir un archivo)
         modoActual = intent.getStringExtra("MODO") ?: "FORM"
         val contenido = intent.getStringExtra("CONTENIDO") ?: ""
-        etEditorCodigo.setText(contenido)
-
-        if (modoActual == "PKM" && contenido.isNotBlank()) {
-            btnCompilar.performClick() // Autocompilar al abrir un PKM
+        if (contenido.isNotBlank()) {
+            editorCodigo.setText(contenido)
+            if (modoActual == "PKM") {
+                btnCompilar.performClick()
+            }
         }
     }
+
+    // --- FUNCIONES AUXILIARES ---
 
     private suspend fun mostrarErroresEnHiloPrincipal() {
         withContext(Dispatchers.Main) {
             if (ManejadorErrores.errores.isEmpty()) return@withContext
-            val reporte = StringBuilder("Errores encontrados:\n\n")
-            ManejadorErrores.errores.forEach { reporte.append("[${it.tipo}] ${it.descripcion}: '${it.lexema}' línea ${it.linea}, col ${it.columna}\n") }
-            tvConsolaErrores.text = reporte.toString()
-            tvConsolaErrores.visibility = View.VISIBLE
+            val reporte = java.lang.StringBuilder()
+            ManejadorErrores.errores.forEach {
+                reporte.append("• [${it.tipo}] Lín ${it.linea}, Col ${it.columna}:\n  ${it.descripcion} ('${it.lexema}')\n\n")
+            }
+
+            // Mostramos los errores en un cuadro de diálogo elegante
+            AlertDialog.Builder(this@MainActivity)
+                .setTitle("Errores de Compilación")
+                .setMessage(reporte.toString())
+                .setPositiveButton("Entendido", null)
+                .show()
         }
     }
 
     private fun iniciarGuardadoLocal(tipo: String) {
         tipoArchivoAGuardar = tipo
-        if (tipo == "FORM" && etEditorCodigo.text.toString().trim().isEmpty()) return
+        if (tipo == "FORM" && editorCodigo.text.toString().trim().isEmpty()) return
         if (tipo == "PKM" && arbolASTActual == null) {
-            Toast.makeText(this, "Compila primero", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Compila el formulario primero", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -217,31 +259,45 @@ class MainActivity : ComponentActivity() {
             result.data?.data?.let { uri ->
                 try {
                     val outputStream = contentResolver.openOutputStream(uri)
-                    val texto = if (tipoArchivoAGuardar == "FORM") etEditorCodigo.text.toString() else ExportadorPKM(Evaluador(TablaSimbolos())).generarArchivoPKM(arbolASTActual!!, "App", "App")
+                    val texto = if (tipoArchivoAGuardar == "FORM") {
+                        editorCodigo.text.toString()
+                    } else {
+                        ExportadorPKM(Evaluador(TablaSimbolos())).generarArchivoPKM(arbolASTActual!!, "Usuario", "Fecha")
+                    }
                     outputStream?.write(texto.toByteArray())
                     outputStream?.close()
-                    Toast.makeText(this, "Guardado exitosamente", Toast.LENGTH_SHORT).show()
-                } catch (e: Exception) { Toast.makeText(this, "Error: ${e.message}", Toast.LENGTH_SHORT).show() }
+                    Toast.makeText(this, "Archivo guardado exitosamente", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    Toast.makeText(this, "Error al guardar: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
 
     private fun guardarEnLaNube() {
-        if (arbolASTActual == null) return
-        Toast.makeText(this, "Enviando...", Toast.LENGTH_SHORT).show()
+        if (arbolASTActual == null) {
+            Toast.makeText(this, "Compila primero antes de subir a la nube", Toast.LENGTH_SHORT).show()
+            return
+        }
+        Toast.makeText(this, "Subiendo formulario...", Toast.LENGTH_SHORT).show()
         val textoPKM = ExportadorPKM(Evaluador(TablaSimbolos())).generarArchivoPKM(arbolASTActual!!, "Usuario", "Nube")
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                com.compi1.proyecto1.utils.RetrofitClient.apiService.guardarFormulario(com.compi1.proyecto1.utils.FormularioPKM(autor = "Usuario", titulo = "Nube", contenidoPkm = textoPKM))
-                withContext(Dispatchers.Main) { Toast.makeText(this@MainActivity, "Guardado en MySQL!", Toast.LENGTH_SHORT).show() }
+                com.compi1.proyecto1.utils.RetrofitClient.apiService.guardarFormulario(
+                    com.compi1.proyecto1.utils.FormularioPKM(autor = "Usuario", titulo = "Nube", contenidoPkm = textoPKM)
+                )
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "¡Guardado exitosamente en MySQL!", Toast.LENGTH_SHORT).show()
+                }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { Toast.makeText(this@MainActivity, "Error API: ${e.message}", Toast.LENGTH_SHORT).show() }
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Error de conexión: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
 
-    // --- FUNCIONES DE PLANTILLAS Y COLOR ---
     private fun mostrarDialogoPlantillas() {
         val nombresPlantillas = arrayOf("1. Sección Básica", "2. Pregunta Abierta", "3. Pregunta de Selección", "4. Tabla Estándar")
         val codigoPlantillas = arrayOf(
@@ -288,8 +344,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun insertarTextoEnEditor(texto: String) {
-        val inicio = Math.max(etEditorCodigo.selectionStart, 0)
-        val fin = Math.max(etEditorCodigo.selectionEnd, 0)
-        etEditorCodigo.text.replace(Math.min(inicio, fin), Math.max(inicio, fin), texto)
+        val inicio = Math.max(editorCodigo.selectionStart, 0)
+        val fin = Math.max(editorCodigo.selectionEnd, 0)
+        editorCodigo.text?.replace(Math.min(inicio, fin), Math.max(inicio, fin), texto)
     }
 }

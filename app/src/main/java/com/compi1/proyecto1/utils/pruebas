@@ -1,0 +1,145 @@
+/* --- PRUEBA 1: MATEMATICAS Y LOGICA --- */
+$ Declaracion de variables basicas
+number base = 10.5
+number altura = 4
+number area = (base * altura) / 2
+
+$ Evaluacion de condicional (Area deberia ser 21)
+IF (area > 20 && base == 10.5) {
+    SECTION [
+        elements: {
+            TEXT [
+                content: "El area es mayor a 20 y las mates funcionan @[:)]",
+                styles [
+                    "color": GREEN,
+                    "text size": 20,
+                    "font family": SANS_SERIF
+                ]
+            ]
+        }
+    ]
+} ELSE IF (area < 20) {
+    SECTION [
+        elements: {
+            TEXT [ content: "Esto no deberia imprimirse", styles [ "color": RED ] ]
+        }
+    ]
+} ELSE {
+    SECTION [
+        elements: {
+            TEXT [ content: "Tampoco esto", styles [ "color": RED ] ]
+        }
+    ]
+}
+
+
+/* --- PRUEBA 2: CICLOS Y SECCIONES --- */
+SECTION [
+    width: 300,
+    height: 400,
+    orientation: VERTICAL,
+    styles [ "background color": #E0E0E0 ],
+    elements: {
+        TEXT [ content: "Iniciando ciclo WHILE:" ]
+    }
+]
+
+number contador = 1
+WHILE (contador <= 3) {
+    SECTION [
+        elements: {
+            TEXT [ content: "Iteracion While numero @[:star:]" ]
+        }
+    ]
+    contador = contador + 1
+}
+
+SECTION [
+    elements: {
+        TEXT [ content: "Iniciando ciclo FOR de rango:" ]
+    }
+]
+
+FOR (i in 1 .. 2) {
+    SECTION [
+        elements: {
+            TEXT [ content: "Iteracion For Rango @[:^^:]" ]
+        }
+    ]
+}
+
+
+
+/* --- PRUEBA 3: FORMULARIOS COMPLEJOS --- */
+TABLE [
+    width: 400, height: 300, pointX: 0, pointY: 0,
+    styles [ "border": (2, LINE, BLACK) ],
+    elements: {
+        [
+            { TEXT [ content: "Encuesta de Compiladores", styles [ "text size": 22 ] ] }
+        ],
+        [
+            { OPEN_QUESTION [ label: "Cual es tu carnet?", width: 200, height: 50 ] }
+        ],
+        [
+            {
+              SELECT_QUESTION [
+                  label: "Te gusto JFlex y CUP?",
+                  options: {"Si", "No", "Tal vez", "Ayuda", "Ya casi soy libre", "Opcion extra para lanzar la advertencia"},
+                  correct: 0
+              ]
+            }
+        ],
+        [
+            {
+              MULTIPLE_QUESTION [
+                  label: "Que fases lograste terminar?",
+                  options: {"Lexico", "Sintactico", "Semantico", "Generacion de Vistas"},
+                  correct: {0, 1, 2, 3}
+              ]
+            }
+        ]
+    }
+]
+
+
+
+/* --- PRUEBA 4: SPECIAL, COMODINES Y POKEAPI --- */
+
+special preguntaDinamica = DROP_QUESTION [
+    label: "Quien es ese Pokemon? @[:0]",
+    width: ?,
+    height: 10 + ?,
+    options: who_is_that_pokemon(NUMBER, 1, 5),
+    correct: 0,
+    styles [ "color": PURPLE, "font family": MONO ]
+]
+
+$ Dibujamos la primera vez con width=200 y height=(10+40)=50
+preguntaDinamica.draw(200, 40)
+
+$ Dibujamos la segunda vez con width=300 y height=(10+90)=100
+preguntaDinamica.draw(300, 90)
+
+
+/* --- PRUEBA 1: MATEMATICAS Y LOGICA --- */
+$ Declaracion de variables basicas
+number base = 10.5
+number altura = 4
+number area = (base * altura) / 2
+
+$ Evaluacion de condicional (Area deberia ser 21)
+IF (area > 20 && base == 10.5) {
+    TEXT [
+        content: "El area es mayor a 20 y las mates funcionan @[:)]",
+        styles [
+            "color": GREEN,
+            "text size": 20,
+            "font family": SANS_SERIF
+        ]
+    ]
+} ELSE IF (area < 20) {
+    TEXT [ content: "Esto no deberia imprimirse", styles [ "color": RED ] ]
+} ELSE {
+    TEXT [ content: "Tampoco esto", styles [ "color": RED ] ]
+}

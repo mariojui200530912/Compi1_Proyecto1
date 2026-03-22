@@ -49,17 +49,6 @@ class GeneradorVistas(
             }
         }
 
-        val btnCalificar = Button(context).apply {
-            text = "Enviar Respuestas"
-            setBackgroundColor(Color.parseColor("#4CAF50"))
-            setTextColor(Color.WHITE)
-            textSize = 18f
-            setOnClickListener {
-                calificarFormulario()
-            }
-        }
-        layoutPrincipal.addView(btnCalificar)
-
         return layoutPrincipal
     }
 
@@ -103,15 +92,13 @@ class GeneradorVistas(
         val contenedor = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
         val label = TextView(context).apply {
             text = pregunta.label
-            setTypeface(null, Typeface.BOLD) // Ponemos el label en negrita por defecto
+            setTypeface(null, Typeface.BOLD)
         }
         val campoTexto = EditText(context).apply {
             hint = "Escribe tu respuesta aquí..."
-            // Aplicamos un padding para que se vea como un campo real
             setPadding(24, 24, 24, 24)
         }
 
-        // REGISTRAMOS
         validadores.add(ValidadorPregunta("ABIERTA", campoTexto, null)) // Aquí asumo que abierta no se autocalifica en tu proyecto
 
         contenedor.addView(label)
@@ -145,7 +132,6 @@ class GeneradorVistas(
 
         for (opcion in pregunta.opciones) {
             val radioButton = RadioButton(context).apply { text = opcion }
-            // IMPORTANTE: Le pasamos los estilos del padre (letra y color) a los hijos
             aplicarEstilosHijos(radioButton, pregunta.estilo)
             radioGroup.addView(radioButton)
         }
@@ -330,7 +316,7 @@ class GeneradorVistas(
         }
     }
 
-    private fun calificarFormulario() {
+    fun calificarFormulario() {
         var correctas = 0
         var totalEvaluables = 0
 

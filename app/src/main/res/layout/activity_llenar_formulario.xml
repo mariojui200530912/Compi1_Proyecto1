@@ -5,6 +5,18 @@
     android:orientation="vertical"
     android:background="#F5F5F5">
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Llenado de Formularios"
+        android:textColor="#FFFFFF"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:paddingTop="16dp"
+        android:paddingBottom="8dp"
+        android:paddingStart="16dp"
+        android:background="#2D2D2D" />
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"

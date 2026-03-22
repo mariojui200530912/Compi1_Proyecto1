@@ -16,7 +16,7 @@ import com.compi1.proyecto1.interprete.ManejadorErrores;
 %state ESTADO_CADENA
 %{
     StringBuilder cadenaConstruida = new StringBuilder();
-
+    public boolean modoEditor = false;
     public int getYyChar() {
         return (int) yychar;
     }
@@ -47,15 +47,6 @@ Identificador  = [:jletter:] [:jletterdigit:]*
 
 // 3. Colores
 ColorHex       = "#" ([:digit:] | [a-fA-F]){6}
-
-// 4. Emojis (Para el syntax highlighter en Kotlin)
-EmojiSmile     = "@\[:\)+:\]" | "@\[:smile:\]"
-EmojiSad       = "@\[:\(+:\]" | "@\[:sad:\]"
-EmojiSerious   = "@\[:\|+:\]" | "@\[:serious:\]"
-EmojiHeart     = "@\[<+3+\]"  | "@\[:heart:\]"
-EmojiStar      = "@\[:star:\]"
-EmojiStarNum   = "@\[:star" [:\-] [:digit:]+ ":\]" // Cubre :star:number: y :star-number:
-EmojiCat       = "@\[:\^\^:\]" | "@\[:cat:\]"
 
 %%
 
@@ -162,7 +153,15 @@ EmojiCat       = "@\[:\^\^:\]" | "@\[:cat:\]"
     "."                 { return symbol(sym.PUNTO); }
     ".."                { return symbol(sym.RANGO); }
     "?"                 { return symbol(sym.COMODIN); }
-    "\""                { cadenaConstruida.setLength(0); yybegin(ESTADO_CADENA); }
+    "\""                {
+                                if (modoEditor) {
+                                    yybegin(ESTADO_CADENA);
+                                    return symbol(996, yytext()); // 996: Token especial para COMILLAS
+                                } else {
+                                    cadenaConstruida.setLength(0);
+                                    yybegin(ESTADO_CADENA);
+                                }
+                            }
 
     /* --- Reconocimiento de Literales y Macros --- */
     {ColorHex}          { return symbol(sym.COLOR_HEX, yytext()); }
@@ -173,34 +172,45 @@ EmojiCat       = "@\[:\^\^:\]" | "@\[:cat:\]"
 
 <ESTADO_CADENA> {
 
-    // Si encontramos la comilla de cierre, salimos del estado y devolvemos el token CADENA
-    \" { yybegin(YYINITIAL); return symbol(sym.CADENA, cadenaConstruida.toString()); }
+    \" {
+        yybegin(YYINITIAL);
+        if (modoEditor) return symbol(996, yytext()); // 996: COMILLAS
+        else return symbol(sym.CADENA, cadenaConstruida.toString());
+    }
 
-    // --- Traducción de Emojis ---
-    {EmojiHeart}   { cadenaConstruida.append("❤️"); }
-    {EmojiStar}    { cadenaConstruida.append("⭐"); }
-    {EmojiSmile}   { cadenaConstruida.append("😄"); }
-    {EmojiSad}     { cadenaConstruida.append("😢"); }
-    {EmojiSerious} { cadenaConstruida.append("😐"); }
-    {EmojiCat}     { cadenaConstruida.append("🐱"); }
-    {EmojiStarNum} {
-                        // yytext() trae algo como "@[:star:15:]" o "@[:star-5:]"
-                        String txt = yytext();
+    // --- Traducción y Separación de Emojis ---
+    // Si es editor, devuelve el token 997 (Emoji literal). Si es CUP, lo traduce y lo guarda.
+    "@[:" ")"+ "]" | "@[:smile:]"      { if(modoEditor) return symbol(997, yytext()); else cadenaConstruida.append("😀"); }
+    "@[:" "("+ "]" | "@[:sad:]"        { if(modoEditor) return symbol(997, yytext()); else cadenaConstruida.append("😢"); }
+    "@[:" "|"+ "]" | "@[:serious:]"    { if(modoEditor) return symbol(997, yytext()); else cadenaConstruida.append("😐"); }
+    "@[<" "3"+ "]" | "@[:heart:]"      { if(modoEditor) return symbol(997, yytext()); else cadenaConstruida.append("❤️"); }
+    "@[:star:]"                        { if(modoEditor) return symbol(997, yytext()); else cadenaConstruida.append("⭐"); }
+    "@[:^^:]" | "@[:cat:]"             { if(modoEditor) return symbol(997, yytext()); else cadenaConstruida.append("🐱"); }
 
-                        // Magia: reemplaza todo lo que NO sea un número del 0 al 9 por vacío
-                        String numStr = txt.replaceAll("[^0-9]", "");
+    // Manejo especial para :star-number: (Ej: @[:star-5:] o @[:star:5:])
+    "@[:star" [:\-] [0-9]+ ":]" {
+        if (modoEditor) {
+            return symbol(997, yytext());
+        } else {
+            String txt = yytext();
+            String numStr = txt.replaceAll("[^0-9]", "");
+            int n = Integer.parseInt(numStr);
+            for(int i = 0; i < n; i++) {
+                cadenaConstruida.append("⭐");
+            }
+        }
+    }
 
-                        int n = Integer.parseInt(numStr);
-                        for(int i = 0; i < n; i++) {
-                            cadenaConstruida.append("⭐");
-                        }
-                    }
-    // --- Captura de Texto Normal ---
-    // Si encontramos cualquier cosa que NO sea una comilla ni un arroba, lo agregamos al texto
-    [^\n\r\"@]+ { cadenaConstruida.append(yytext()); }
+    // --- Captura de Texto Normal dentro de la cadena ---
+    [^\n\r\"@]+ {
+        if (modoEditor) return symbol(998, yytext());
+        else cadenaConstruida.append(yytext());
+    }
 
-    // Si encontramos un arroba suelto que NO forma parte de un emoji válido, lo agregamos literal
-    "@" { cadenaConstruida.append("@"); }
+    "@" {
+        if (modoEditor) return symbol(998, yytext());
+        else cadenaConstruida.append("@");
+    }
 }
 
 /* --- Manejo de Errores Léxicos --- */
