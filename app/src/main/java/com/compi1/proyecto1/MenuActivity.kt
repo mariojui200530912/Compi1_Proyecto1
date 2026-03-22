@@ -25,12 +25,12 @@ class MenuActivity : ComponentActivity() {
         val btnAbrirNube = findViewById<Button>(R.id.btnAbrirNube)
         val btnResponder = findViewById<Button>(R.id.btnResponderMenu)
 
-        // 1. CREAR NUEVO: Simplemente abre el editor vacío
+        // CREAR NUEVO: Simplemente abre el editor vacío
         btnCrearNuevo.setOnClickListener {
             abrirEspacioDeTrabajo("NUEVO", "")
         }
 
-        // 2. ABRIR LOCAL: Lanza el explorador de archivos
+        // ABRIR LOCAL: Lanza el explorador de archivos
         btnAbrirLocal.setOnClickListener {
             accionPendiente = "EDITAR"
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -40,7 +40,7 @@ class MenuActivity : ComponentActivity() {
             abrirArchivoLauncher.launch(intent)
         }
 
-        // 3. ABRIR DE LA NUBE: Consulta a la API
+        // ABRIR DE LA NUBE: Consulta a la API
         btnAbrirNube.setOnClickListener {
             accionPendiente = "EDITAR"
             descargarFormulariosDeNube()
@@ -67,7 +67,7 @@ class MenuActivity : ComponentActivity() {
         }
     }
 
-    // --- LÓGICA DE ABRIR LOCAL ---
+    // --- LOGICA DE ABRIR LOCAL ---
     private val abrirArchivoLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             result.data?.data?.let { uri ->
@@ -94,7 +94,7 @@ class MenuActivity : ComponentActivity() {
         }
     }
 
-    // --- LÓGICA DE ABRIR NUBE ---
+    // --- LOGICA DE ABRIR NUBE ---
     private fun descargarFormulariosDeNube() {
         Toast.makeText(this, "Conectando con el servidor...", Toast.LENGTH_SHORT).show()
 
@@ -128,19 +128,16 @@ class MenuActivity : ComponentActivity() {
         }
     }
 
-    // --- FUNCIÓN PUENTE HACIA EL EDITOR ---
+    // --- FUNCION PUENTE HACIA EL EDITOR ---
     private fun abrirEspacioDeTrabajo(modo: String, contenido: String) {
-        if (accionPendiente == "RESPONDER") {
-            // Modo Usuario Final: Se va directo a LlenarFormularioActivity
-            val intent = Intent(this, LlenarFormularioActivity::class.java)
-            intent.putExtra("PKM_DATA", contenido)
-            startActivity(intent)
-        } else {
-            // Modo Desarrollador: Se va al MainActivity (Editor)
-            val intent = Intent(this, MainActivity::class.java)
-            intent.putExtra("MODO", modo)
-            intent.putExtra("CONTENIDO", contenido)
-            startActivity(intent)
-        }
+        val intent = Intent(this, MainActivity::class.java)
+        // Le mandamos el modo (PKM o FORM) y el texto
+        intent.putExtra("MODO", modo)
+        intent.putExtra("CONTENIDO", contenido)
+
+        // Le avisamos si viene a editar o a responder
+        intent.putExtra("ACCION", accionPendiente)
+
+        startActivity(intent)
     }
 }

@@ -101,7 +101,7 @@ class MainActivity : ComponentActivity() {
             }
         })
 
-        // 3. MENÚ DE OPCIONES PRINCIPAL
+        // MENU DE OPCIONES PRINCIPAL
         btnMenu.setOnClickListener { view ->
             val popup = PopupMenu(this, view)
             popup.menu.add(0, 1, 0, "📝 Insertar Plantilla")
@@ -121,12 +121,11 @@ class MainActivity : ComponentActivity() {
             popup.show()
         }
 
-        // Botón independiente para el color (como lo pide el XML)
+        // Boton para color
         btnColor.setOnClickListener {
             mostrarDialogoColor()
         }
 
-        // 4. LÓGICA DE COMPILACIÓN ASÍNCRONA
         btnCompilar.setOnClickListener {
             val codigoFuente = editorCodigo.text.toString()
             if (codigoFuente.trim().isEmpty()) {
@@ -174,10 +173,20 @@ class MainActivity : ComponentActivity() {
                     // Regresamos al hilo principal para dibujar
                     withContext(Dispatchers.Main) {
                         val generador = GeneradorVistas(this@MainActivity, evaluador)
-                        this@MainActivity.generadorActual = generador // ✨ AHORA ES 100% EXPLÍCITO ✨
+                        this@MainActivity.generadorActual = generador
                         val vistaFinal = generador.generarFormulario(arbolFinal)
                         contenedorFormulario.addView(vistaFinal)
-                        Toast.makeText(this@MainActivity, "¡Compilación Exitosa! Todo listo para probar.", Toast.LENGTH_SHORT).show()
+
+                        val accion = intent.getStringExtra("ACCION") ?: "EDITAR"
+
+                        if (accion == "RESPONDER") {
+                            // Si viene a responder, lo lanzamos directo a la cara 2 del ViewFlipper
+                            Toast.makeText(this@MainActivity, "Formulario cargado exitosamente", Toast.LENGTH_SHORT).show()
+                            viewFlipper.displayedChild = 1
+                        } else {
+                            // Si viene a editar, lo dejamos en el editor (cara 0)
+                            Toast.makeText(this@MainActivity, "¡Compilación Exitosa! Todo listo para probar.", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -188,7 +197,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // 5. TRANSICIONES DEL VIEW FLIPPER
+        // TRANSICIONES DEL VIEW FLIPPER
         btnProbar.setOnClickListener {
             if (ManejadorErrores.errores.isNotEmpty()) {
                 Toast.makeText(this, "Corrige los errores antes de probar", Toast.LENGTH_SHORT).show()
@@ -213,12 +222,15 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // 6. RECUPERAR DATOS DEL INTENT (Si vienes de abrir un archivo)
+        // RECUPERAR DATOS DEL INTENT (Si vienes de abrir un archivo)
         modoActual = intent.getStringExtra("MODO") ?: "FORM"
         val contenido = intent.getStringExtra("CONTENIDO") ?: ""
+        val accion = intent.getStringExtra("ACCION") ?: "EDITAR" // ✨ Leemos si viene a responder
+
         if (contenido.isNotBlank()) {
             editorCodigo.setText(contenido)
-            if (modoActual == "PKM") {
+
+            if (modoActual == "PKM" || accion == "RESPONDER") {
                 btnCompilar.performClick()
             }
         }
