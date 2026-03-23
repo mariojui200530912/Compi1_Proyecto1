@@ -6,14 +6,12 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 
-// 1. El modelo de datos en Kotlin (Idéntico a tu Formulario.java de Spring Boot)
 data class FormularioPKM(
     val autor: String,
     val titulo: String,
     val contenidoPkm: String
 )
 
-// 2. Las rutas de tu API
 interface FormularioApiService {
 
     @POST("/api/formularios")
@@ -23,9 +21,8 @@ interface FormularioApiService {
     suspend fun obtenerTodosLosFormularios(): List<FormularioPKM>
 }
 
-// 3. El constructor de la conexión
 object RetrofitClient {
-    // IMPORTANTE: 10.0.2.2 es el localhost de tu compu visto desde el Emulador de Android
+    // 10.0.2.2 es el localhost
     private const val BASE_URL = "http://10.0.2.2:8080/"
 
     val apiService: FormularioApiService by lazy {

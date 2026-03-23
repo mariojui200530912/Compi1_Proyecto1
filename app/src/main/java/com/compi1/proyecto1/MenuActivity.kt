@@ -100,7 +100,6 @@ class MenuActivity : ComponentActivity() {
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // Asumiendo que tu RetrofitClient está en el paquete utils
                 val lista = com.compi1.proyecto1.utils.RetrofitClient.apiService.obtenerTodosLosFormularios()
 
                 withContext(Dispatchers.Main) {
@@ -109,16 +108,63 @@ class MenuActivity : ComponentActivity() {
                         return@withContext
                     }
 
-                    val nombres = lista.map { "${it.titulo} (Autor: ${it.autor})" }.toTypedArray()
+                    // 1. Creamos un contenedor scrolleable
+                    val scrollView = android.widget.ScrollView(this@MenuActivity)
+                    val layoutPrincipal = android.widget.LinearLayout(this@MenuActivity).apply {
+                        orientation = android.widget.LinearLayout.VERTICAL
+                        setPadding(40, 40, 40, 40)
+                    }
 
-                    AlertDialog.Builder(this@MenuActivity)
-                        .setTitle("Selecciona un Formulario")
-                        .setItems(nombres) { _, index ->
-                            // Como la nube guarda los .pkm compilados, el tipo es PKM
-                            abrirEspacioDeTrabajo("PKM", lista[index].contenidoPkm)
-                        }
+                    // 2. Dialog Builder (lo creamos primero para poder cerrarlo al hacer clic)
+                    val builder = AlertDialog.Builder(this@MenuActivity)
+                        .setTitle("☁️ Formularios Disponibles")
+                        .setView(scrollView)
                         .setNegativeButton("Cancelar", null)
-                        .show()
+
+                    val dialog = builder.create()
+
+                    // 3. Generamos una "Tarjeta" visual por cada formulario
+                    lista.forEach { form ->
+                        val card = android.widget.LinearLayout(this@MenuActivity).apply {
+                            orientation = android.widget.LinearLayout.VERTICAL
+                            setPadding(40, 30, 40, 30)
+                            val params = android.widget.LinearLayout.LayoutParams(
+                                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                            )
+                            params.setMargins(0, 0, 0, 25) // Espacio entre tarjetas
+                            layoutParams = params
+                            setBackgroundColor(android.graphics.Color.parseColor("#E3F2FD")) // Fondo celeste suave
+                        }
+
+                        val tvTitulo = android.widget.TextView(this@MenuActivity).apply {
+                            text = form.titulo
+                            textSize = 18f
+                            setTypeface(null, android.graphics.Typeface.BOLD)
+                            setTextColor(android.graphics.Color.BLACK)
+                        }
+
+                        val tvAutor = android.widget.TextView(this@MenuActivity).apply {
+                            text = "Autor: ${form.autor}"
+                            textSize = 14f
+                            setTextColor(android.graphics.Color.DKGRAY)
+                            setPadding(0, 8, 0, 0)
+                        }
+
+                        card.addView(tvTitulo)
+                        card.addView(tvAutor)
+
+                        // 4. Le damos vida a la tarjeta
+                        card.setOnClickListener {
+                            dialog.dismiss() // Cerramos el menú
+                            abrirEspacioDeTrabajo("PKM", form.contenidoPkm) // Abrimos el formulario
+                        }
+
+                        layoutPrincipal.addView(card)
+                    }
+
+                    scrollView.addView(layoutPrincipal)
+                    dialog.show()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {

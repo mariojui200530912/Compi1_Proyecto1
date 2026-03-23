@@ -261,18 +261,25 @@ class GeneradorVistas(
 
     // --- METODOS AUXILIARES DE ESTILO ---
     private fun aplicarEstilosBase(vista: View, comp: ComponenteVisual) {
-        // ✨ MAGIA: Escala de densidad para pantallas HD de Android
         val scale = context.resources.displayMetrics.density
 
         val widthEval = comp.width?.let { evaluador.evaluar(it) as? Double }
         val heightEval = comp.height?.let { evaluador.evaluar(it) as? Double }
 
-        // Multiplicamos por la escala para convertir a DP reales
-        val wPix = if (widthEval != null) (widthEval * scale).toInt() else ViewGroup.LayoutParams.MATCH_PARENT
-        val hPix = if (heightEval != null) (heightEval * scale).toInt() else ViewGroup.LayoutParams.WRAP_CONTENT
+        val wPix = if (widthEval != null && widthEval > 0) {
+            (widthEval * scale).toInt()
+        } else {
+            ViewGroup.LayoutParams.MATCH_PARENT
+        }
+
+        val hPix = if (heightEval != null && heightEval > 0) {
+            (heightEval * scale).toInt()
+        } else {
+            ViewGroup.LayoutParams.WRAP_CONTENT // Se ajusta al contenido si no se especifica o es 0
+        }
 
         val params = LinearLayout.LayoutParams(wPix, hPix)
-        val margen = (8 * scale).toInt() // Margen también escalado
+        val margen = (8 * scale).toInt()
         params.setMargins(margen, margen, margen, margen)
         vista.layoutParams = params
 
@@ -297,7 +304,7 @@ class GeneradorVistas(
         }
     }
 
-    // Función auxiliar para aplicarle el color y letra a los radiobuttons y checkboxes
+    // Funcion auxiliar para aplicarle el color y letra a los radiobuttons y checkboxes
     private fun aplicarEstilosHijos(vistaHijo: TextView, estilo: Estilo?) {
         if (estilo == null) return
         estilo.colorTexto?.let { vistaHijo.setTextColor(traducirColor(it)) }

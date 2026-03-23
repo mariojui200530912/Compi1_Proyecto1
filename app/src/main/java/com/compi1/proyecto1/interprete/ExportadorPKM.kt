@@ -58,16 +58,23 @@ class ExportadorPKM(private val evaluador: Evaluador) {
         val tab = "  ".repeat(nivel)
         val sb = StringBuilder()
 
-        val w = eval(comp.width) ?: 0
-        val h = eval(comp.height) ?: 0
+        // ✨ MAGIA A PRUEBA DE BALAS:
+        // Verificamos que no sea nulo Y que sea mayor a 0. Si no, usamos el valor por defecto.
+        val evalW = eval(comp.width)
+        val w = if (evalW != null && evalW > 0) evalW else 400
+
+        val evalH = eval(comp.height)
+        val h = if (evalH != null && evalH > 0) evalH else 150
+
         val estilos = generarEstilos(comp.estilo, tab + "  ")
 
         when (comp) {
             is Seccion -> {
                 totalSecciones++
-                val pX = eval(comp.pointX) ?: 0
-                val pY = eval(comp.pointY) ?: 0
-                val orient = comp.orientation
+                // ✨ Valores por defecto para posición en lugar de 0
+                val pX = eval(comp.pointX) ?: 20
+                val pY = eval(comp.pointY) ?: 20
+                val orient = comp.orientation ?: "VERTICAL"
 
                 sb.append("$tab<section=$w,$h,$pX,$pY,$orient>\n")
                 if (estilos.isNotEmpty()) sb.append(estilos)
@@ -83,8 +90,9 @@ class ExportadorPKM(private val evaluador: Evaluador) {
             }
 
             is Tabla -> {
-                val pX = eval(comp.pointX) ?: 0
-                val pY = eval(comp.pointY) ?: 0
+                // ✨ Valores por defecto para posición en lugar de 0
+                val pX = eval(comp.pointX) ?: 20
+                val pY = eval(comp.pointY) ?: 20
 
                 sb.append("$tab<table=$w,$h,$pX,$pY>\n")
 
@@ -133,7 +141,7 @@ class ExportadorPKM(private val evaluador: Evaluador) {
                 totalPreguntas++; desplegables++
                 val lbl = revertirEmojis(comp.label)
                 val ops = formatOpciones(comp.opciones)
-                val corr = eval(comp.respuestaCorrecta) ?: -1
+                val corr = eval(comp.respuestaCorrecta) ?: -1 // El -1 es válido para decir "no hay respuesta"
 
                 if (estilos.isEmpty()) {
                     sb.append("$tab<drop=$w,$h,\"$lbl\",$ops,$corr/>\n")
@@ -178,7 +186,6 @@ class ExportadorPKM(private val evaluador: Evaluador) {
         }
         return sb.toString()
     }
-
     // --- FUNCIONES AUXILIARES ---
 
     private fun generarEstilos(estilo: Estilo?, tab: String): String {

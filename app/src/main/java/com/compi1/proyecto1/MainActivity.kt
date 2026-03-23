@@ -258,6 +258,10 @@ class MainActivity : ComponentActivity() {
     private fun iniciarGuardadoLocal(tipo: String) {
         tipoArchivoAGuardar = tipo
         if (tipo == "FORM" && editorCodigo.text.toString().trim().isEmpty()) return
+        if (tipo == "FORM" && modoActual == "PKM") {
+            Toast.makeText(this, "⚠️ No puedes guardar un diseño compilado (.pkm) como código fuente (.form).", Toast.LENGTH_LONG).show()
+            return
+        }
         if (tipo == "PKM" && arbolASTActual == null) {
             Toast.makeText(this, "Compila el formulario primero", Toast.LENGTH_SHORT).show()
             return
@@ -325,17 +329,45 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun guardarEnLaNube() {
-        if (arbolASTActual == null) {
+        if (arbolFinalGlobal == null) {
             Toast.makeText(this, "Compila primero antes de subir a la nube", Toast.LENGTH_SHORT).show()
             return
         }
+
+        // 1. Creamos el diseño del diálogo
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(60, 40, 60, 40)
+        }
+        val inputAutor = EditText(this).apply { hint = "Ingresa el Autor" }
+        val inputTitulo = EditText(this).apply { hint = "Título / Descripción" }
+
+        layout.addView(inputAutor)
+        layout.addView(inputTitulo)
+
+        // 2. Mostramos el diálogo pidiendo los datos
+        AlertDialog.Builder(this)
+            .setTitle("☁️ Guardar en la Nube")
+            .setView(layout)
+            .setPositiveButton("Subir") { _, _ ->
+                val autor = inputAutor.text.toString().ifBlank { "Anonimo" }
+                val titulo = inputTitulo.text.toString().ifBlank { "Sin titulo" }
+                ejecutarSubidaNube(autor, titulo)
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun ejecutarSubidaNube(autor: String, titulo: String) {
         Toast.makeText(this, "Subiendo formulario...", Toast.LENGTH_SHORT).show()
-        val textoPKM = ExportadorPKM(Evaluador(TablaSimbolos())).generarArchivoPKM(arbolFinalGlobal!!, "Usuario", "Nube")
+
+        // ✨ Inyectamos los datos reales del usuario en el PKM
+        val textoPKM = ExportadorPKM(Evaluador(TablaSimbolos())).generarArchivoPKM(arbolFinalGlobal!!, autor, titulo)
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 com.compi1.proyecto1.utils.RetrofitClient.apiService.guardarFormulario(
-                    com.compi1.proyecto1.utils.FormularioPKM(autor = "Usuario", titulo = "Nube", contenidoPkm = textoPKM)
+                    com.compi1.proyecto1.utils.FormularioPKM(autor = autor, titulo = titulo, contenidoPkm = textoPKM)
                 )
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@MainActivity, "¡Guardado exitosamente en MySQL!", Toast.LENGTH_SHORT).show()
