@@ -11,7 +11,7 @@ data class ErrorAnalisis(
 object ManejadorErrores {
     val errores = mutableListOf<ErrorAnalisis>()
 
-    @JvmStatic // ¡Mágico! Permite que JFlex y CUP (Java) llamen a esta función de Kotlin
+    @JvmStatic
     fun agregarError(lexema: String, linea: Int, columna: Int, tipo: String, descripcion: String) {
         errores.add(ErrorAnalisis(lexema, linea, columna, tipo, descripcion))
     }

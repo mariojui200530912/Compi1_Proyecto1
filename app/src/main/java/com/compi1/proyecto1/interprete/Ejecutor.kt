@@ -23,21 +23,17 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
                 }
 
                 is DeclaracionEspecial -> {
-                    // Guardamos la pregunta completa en la tabla de símbolos como tipo "special"
                     tabla.declararVariable("special", instruccion.id, instruccion.pregunta)
                 }
 
                 is LlamadaDraw -> {
-                    // Obtenemos directamente el valor de la variable
                     val valorVariable = tabla.obtenerVariable(instruccion.id)
 
-                    // Verificamos si existe y si es un componente visual (o sea, si es 'special')
                     if (valorVariable !is ComponenteVisual) {
                         ManejadorErrores.agregarError("Semántico", 0, 0, "Semántico", "La variable '${instruccion.id}' no es 'special' o no existe.")
                     } else {
                         val preguntaOriginal = valorVariable // Ya es nuestro componente
 
-                        // Evaluamos los argumentos que pasaron en el draw()
                         val valoresArgumentos = instruccion.argumentos.map {
                             (evaluador.evaluar(it) as? Double) ?: 0.0
                         }.toMutableList()
@@ -56,13 +52,11 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
                 is SentenciaIf -> {
                     val condicionPrincipal = (evaluador.evaluar(instruccion.condicion) as? Double) ?: 0.0
 
-                    // El manual dice: mayor o igual a 1 es verdadero, 0 o menor es falso
                     if (condicionPrincipal >= 1.0) {
                         componentesA_Dibujar.addAll(ejecutar(instruccion.bloqueTrue))
                     } else {
                         var bloqueEjecutado = false
 
-                        // Evaluar los ELSE IF secuencialmente
                         instruccion.bloqueElseIf?.forEach { elseIf ->
                             if (!bloqueEjecutado) {
                                 val condElseIf = (evaluador.evaluar(elseIf.condicion) as? Double) ?: 0.0
@@ -102,7 +96,6 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
                 }
 
                 is SentenciaForRango -> {
-                    // ✨ CORRECCIÓN 1: Usamos 'continue' en lugar de 'return@forEach'
                     val inicio = evaluador.evaluar(instruccion.rangoInicio) as? Double ?: continue
                     val fin = evaluador.evaluar(instruccion.rangoFin) as? Double ?: continue
 
@@ -118,7 +111,7 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
                     // Ejecutamos el ciclo respetando el rango
                     var actual = inicio
                     while (actual <= fin) {
-                        tabla.asignarVariable(nombreVar, actual) // Actualizamos el valor de 'i'
+                        tabla.asignarVariable(nombreVar, actual)
 
                         val resultadoBloque = ejecutar(instruccion.bloque)
                         // ✨ CORRECCIÓN 2: Usamos tu lista real 'componentesA_Dibujar'
@@ -180,7 +173,7 @@ class Ejecutor(private val tabla: TablaSimbolos, private val evaluador: Evaluado
         if (exp == null) return null
 
         return when (exp) {
-            // Si encontramos un '?' en el AST, sacamos un valor de la lista y lo convertimos a número
+            // Si encontramos un '?' en el AST, sacamos un valor de la lista y lo convertimos a numero
             is Expresion.Comodin -> {
                 if (valores.isNotEmpty()) {
                     Expresion.NumeroLiteral(valores.removeAt(0))

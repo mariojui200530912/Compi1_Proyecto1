@@ -24,7 +24,6 @@ class ExportadorPKM(private val evaluador: Evaluador) {
         seleccion = 0
         multiples = 0
 
-        // 2. Generamos el cuerpo primero (para llenar los contadores reales)
         val cuerpoBuilder = StringBuilder()
         for (comp in componentes) {
             if (comp is ComponenteVisual) {
@@ -35,7 +34,6 @@ class ExportadorPKM(private val evaluador: Evaluador) {
         val fechaActual = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
         val horaActual = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
 
-        // 3. ✨ METADATOS EXACTOS (Sin comas, sin comillas, con tildes y espacios exactos del Lexer)
         val metaBuilder = StringBuilder()
         metaBuilder.append("###\n")
         metaBuilder.append("    Author: $autor\n")
@@ -50,7 +48,7 @@ class ExportadorPKM(private val evaluador: Evaluador) {
         metaBuilder.append("        Múltiples: $multiples\n")
         metaBuilder.append("###\n\n")
 
-        // 4. Unimos metadatos y cuerpo
+        // Unimos metadatos y cuerpo
         return metaBuilder.toString() + cuerpoBuilder.toString()
     }
 
@@ -58,8 +56,6 @@ class ExportadorPKM(private val evaluador: Evaluador) {
         val tab = "  ".repeat(nivel)
         val sb = StringBuilder()
 
-        // ✨ MAGIA A PRUEBA DE BALAS:
-        // Verificamos que no sea nulo Y que sea mayor a 0. Si no, usamos el valor por defecto.
         val evalW = eval(comp.width)
         val w = if (evalW != null && evalW > 0) evalW else 400
 
@@ -71,7 +67,6 @@ class ExportadorPKM(private val evaluador: Evaluador) {
         when (comp) {
             is Seccion -> {
                 totalSecciones++
-                // ✨ Valores por defecto para posición en lugar de 0
                 val pX = eval(comp.pointX) ?: 20
                 val pY = eval(comp.pointY) ?: 20
                 val orient = comp.orientation ?: "VERTICAL"
@@ -141,7 +136,7 @@ class ExportadorPKM(private val evaluador: Evaluador) {
                 totalPreguntas++; desplegables++
                 val lbl = revertirEmojis(comp.label)
                 val ops = formatOpciones(comp.opciones)
-                val corr = eval(comp.respuestaCorrecta) ?: -1 // El -1 es válido para decir "no hay respuesta"
+                val corr = eval(comp.respuestaCorrecta) ?: -1
 
                 if (estilos.isEmpty()) {
                     sb.append("$tab<drop=$w,$h,\"$lbl\",$ops,$corr/>\n")
@@ -227,26 +222,23 @@ class ExportadorPKM(private val evaluador: Evaluador) {
                         con.requestMethod = "GET"
                         val res = con.inputStream.bufferedReader().use { it.readText() }
 
-                        // Extraemos el nombre real del JSON
                         val name = org.json.JSONObject(res).getString("name")
                         nombres.add("\"$name\"")
                     } catch (e: Exception) {
-                        // Si falla la red, ponemos un respaldo para no arruinar el archivo
                         nombres.add("\"Pokemon $id\"")
                     }
                 }
                 nombres.joinToString(",")
             })
 
-            // Esperamos a que termine de procesar todos los nombres
+            // Se espera procesar todo
             val nombresUnidos = future.get()
             executor.shutdown()
 
-            // Retorna un string perfecto para el Lexer: {"bulbasaur","ivysaur","venusaur"}
             return "{$nombresUnidos}"
         }
 
-        // Si es una pregunta normal (sin PokeAPI), lo guarda como venía
+
         val textos = opciones.map { evalString(it) }
         return "{" + textos.joinToString(",") { "\"$it\"" } + "}"
     }

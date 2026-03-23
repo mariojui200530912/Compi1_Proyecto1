@@ -64,7 +64,7 @@ class MainActivity : ComponentActivity() {
         actionBar?.hide()
         setContentView(R.layout.activity_main)
 
-        // 1. ENLACE DE VISTAS (Evitando duplicados)
+        // ENLACE DE VISTAS
         viewFlipper = findViewById(R.id.viewFlipper)
         editorCodigo = findViewById(R.id.editorCodigo)
         contenedorFormulario = findViewById(R.id.contenedorFormulario)
@@ -77,7 +77,7 @@ class MainActivity : ComponentActivity() {
         btnModificar = findViewById(R.id.btnModificar)
         btnEnviar = findViewById(R.id.btnEnviar)
 
-        // 2. COLOREADO DE CÓDIGO EN TIEMPO REAL
+        // COLOREADO DE CODIGO
         editorCodigo.addTextChangedListener(object : TextWatcher {
             private var isFormatting = false
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -210,7 +210,6 @@ class MainActivity : ComponentActivity() {
         }
 
         btnModificar.setOnClickListener {
-            // Regresamos a la pantalla del editor (índice 0)
             viewFlipper.displayedChild = 0
         }
 
@@ -222,10 +221,10 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // RECUPERAR DATOS DEL INTENT (Si vienes de abrir un archivo)
+        // RECUPERAR DATOS DEL INTENT
         modoActual = intent.getStringExtra("MODO") ?: "FORM"
         val contenido = intent.getStringExtra("CONTENIDO") ?: ""
-        val accion = intent.getStringExtra("ACCION") ?: "EDITAR" // ✨ Leemos si viene a responder
+        val accion = intent.getStringExtra("ACCION") ?: "EDITAR"
 
         if (contenido.isNotBlank()) {
             editorCodigo.setText(contenido)
@@ -246,7 +245,6 @@ class MainActivity : ComponentActivity() {
                 reporte.append("• [${it.tipo}] Lín ${it.linea}, Col ${it.columna}:\n  ${it.descripcion} ('${it.lexema}')\n\n")
             }
 
-            // Mostramos los errores en un cuadro de diálogo elegante
             AlertDialog.Builder(this@MainActivity)
                 .setTitle("Errores de Compilación")
                 .setMessage(reporte.toString())
@@ -268,10 +266,8 @@ class MainActivity : ComponentActivity() {
         }
 
         if (tipo == "PKM") {
-            // Si es PKM, lanzamos el cuadro de diálogo antes de guardar
             mostrarDialogoDatosPKM()
         } else {
-            // Si es FORM, guardamos directo
             lanzarIntentGuardado("codigo.form")
         }
     }
@@ -334,7 +330,6 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        // 1. Creamos el diseño del diálogo
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(60, 40, 60, 40)
@@ -345,7 +340,6 @@ class MainActivity : ComponentActivity() {
         layout.addView(inputAutor)
         layout.addView(inputTitulo)
 
-        // 2. Mostramos el diálogo pidiendo los datos
         AlertDialog.Builder(this)
             .setTitle("☁️ Guardar en la Nube")
             .setView(layout)
@@ -361,7 +355,6 @@ class MainActivity : ComponentActivity() {
     private fun ejecutarSubidaNube(autor: String, titulo: String) {
         Toast.makeText(this, "Subiendo formulario...", Toast.LENGTH_SHORT).show()
 
-        // ✨ Inyectamos los datos reales del usuario en el PKM
         val textoPKM = ExportadorPKM(Evaluador(TablaSimbolos())).generarArchivoPKM(arbolFinalGlobal!!, autor, titulo)
 
         lifecycleScope.launch(Dispatchers.IO) {

@@ -47,7 +47,7 @@ class MenuActivity : ComponentActivity() {
         }
 
         btnResponder.setOnClickListener {
-            accionPendiente = "RESPONDER" // Cambiamos el modo
+            accionPendiente = "RESPONDER"
             val opciones = arrayOf("📁 Archivo en el Teléfono", "☁️ Formulario en la Nube")
             AlertDialog.Builder(this)
                 .setTitle("¿Dónde está el formulario a llenar?")
@@ -108,14 +108,13 @@ class MenuActivity : ComponentActivity() {
                         return@withContext
                     }
 
-                    // 1. Creamos un contenedor scrolleable
+                    // Creamos un contenedor scrolleable
                     val scrollView = android.widget.ScrollView(this@MenuActivity)
                     val layoutPrincipal = android.widget.LinearLayout(this@MenuActivity).apply {
                         orientation = android.widget.LinearLayout.VERTICAL
                         setPadding(40, 40, 40, 40)
                     }
 
-                    // 2. Dialog Builder (lo creamos primero para poder cerrarlo al hacer clic)
                     val builder = AlertDialog.Builder(this@MenuActivity)
                         .setTitle("☁️ Formularios Disponibles")
                         .setView(scrollView)
@@ -123,7 +122,6 @@ class MenuActivity : ComponentActivity() {
 
                     val dialog = builder.create()
 
-                    // 3. Generamos una "Tarjeta" visual por cada formulario
                     lista.forEach { form ->
                         val card = android.widget.LinearLayout(this@MenuActivity).apply {
                             orientation = android.widget.LinearLayout.VERTICAL
@@ -134,7 +132,7 @@ class MenuActivity : ComponentActivity() {
                             )
                             params.setMargins(0, 0, 0, 25) // Espacio entre tarjetas
                             layoutParams = params
-                            setBackgroundColor(android.graphics.Color.parseColor("#E3F2FD")) // Fondo celeste suave
+                            setBackgroundColor(android.graphics.Color.parseColor("#E3F2FD"))
                         }
 
                         val tvTitulo = android.widget.TextView(this@MenuActivity).apply {
@@ -154,7 +152,6 @@ class MenuActivity : ComponentActivity() {
                         card.addView(tvTitulo)
                         card.addView(tvAutor)
 
-                        // 4. Le damos vida a la tarjeta
                         card.setOnClickListener {
                             dialog.dismiss() // Cerramos el menú
                             abrirEspacioDeTrabajo("PKM", form.contenidoPkm) // Abrimos el formulario

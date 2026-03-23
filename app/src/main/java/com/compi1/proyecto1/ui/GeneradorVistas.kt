@@ -100,7 +100,7 @@ class GeneradorVistas(
             setPadding(24, 24, 24, 24)
         }
 
-        validadores.add(ValidadorPregunta("ABIERTA", campoTexto, null)) // Aquí asumo que abierta no se autocalifica en tu proyecto
+        validadores.add(ValidadorPregunta("ABIERTA", campoTexto, null))
 
         contenedor.addView(label)
         contenedor.addView(campoTexto)
@@ -115,8 +115,6 @@ class GeneradorVistas(
         }
 
         if (pregunta.opciones.size > 5) {
-            // Mostramos una advertencia flotante al usuario
-
             AlertDialog.Builder(context)
                 .setTitle("Advertencia")
                 .setMessage("La pregunta '${pregunta.label}' tiene ${pregunta.opciones.size} opciones. Se recomienda un máximo de 5.")
@@ -205,7 +203,6 @@ class GeneradorVistas(
             // Cada fila de la matriz
             val layoutFila = LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
-                // ✨ MAGIA: El alto de la fila es 0dp, pero tiene peso 1.
                 // Esto obliga a que todas las filas midan exactamente lo mismo de alto.
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
@@ -221,7 +218,6 @@ class GeneradorVistas(
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
                     setPadding(16, 16, 16, 16)
 
-                    // Extraemos las configuraciones (o usamos valores por defecto si no mandaron estilos)
                     val grosorAst = tabla.estilo?.bordeGrosor?.let { (evaluador.evaluar(it) as? Double)?.toInt() } ?: 3
                     val colorHex = tabla.estilo?.bordeColor ?: "BLACK"
                     val tipoBorde = tabla.estilo?.bordeTipo ?: "LINE"
@@ -310,7 +306,7 @@ class GeneradorVistas(
         estilo.colorTexto?.let { vistaHijo.setTextColor(traducirColor(it)) }
         estilo.tamanoTexto?.let {
             val size = (evaluador.evaluar(it) as? Double)?.toFloat()
-            if (size != null) vistaHijo.textSize = size - 2f // Un poco más pequeño que el título
+            if (size != null) vistaHijo.textSize = size - 2f
         }
         estilo.familiaFuente?.let {
             when (it.uppercase()) {
@@ -336,7 +332,6 @@ class GeneradorVistas(
                 "PURPLE" -> Color.parseColor("#9C27B0")
                 "SKY" -> Color.parseColor("#03A9F4")
                 else -> {
-                    // Soporte para HEX o RGB manual si lo llegas a implementar
                     if (limpio.startsWith("#")) Color.parseColor(limpio) else Color.TRANSPARENT
                 }
             }
@@ -396,8 +391,6 @@ class GeneradorVistas(
                     totalEvaluables++
                     val spinner = validador.vistaEntrada as Spinner
                     val indiceSeleccionado = spinner.selectedItemPosition
-                    // Nota: el indiceCorrecto en el AST de 1 a N, pero el Spinner es de 0 a N-1.
-                    // Asumo que tu parser o AST ya lo ajusta, si no, resta -1 aquí.
                     val indiceEsperado = validador.respuestaCorrecta as Int
                     if (indiceSeleccionado == (indiceEsperado - 1)) { // Ajuste típico de índice 1 a 0
                         esCorrecta = true

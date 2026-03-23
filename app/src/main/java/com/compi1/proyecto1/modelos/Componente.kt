@@ -4,13 +4,12 @@ data class Estilo(
     var colorTexto: String? = null,
     var colorFondo: String? = null,
     var familiaFuente: String? = null,
-    var tamanoTexto: Expresion? = null, // Usamos Expresion porque podría ser una variable
+    var tamanoTexto: Expresion? = null,
     var bordeGrosor: Expresion? = null,
     var bordeTipo: String? = null,
     var bordeColor: String? = null
 )
 
-// Todo elemento gráfico es un Componente Visual (y a su vez una instrucción de dibujado)
 sealed class ComponenteVisual : Instruccion() {
     var width: Expresion? = null
     var height: Expresion? = null
@@ -40,7 +39,7 @@ class PreguntaAbierta(label: String) : Pregunta(label)
 
 class PreguntaDesplegable(
     label: String,
-    var opciones: List<Expresion>, // Expresion porque podría ser una función de la PokéAPI
+    var opciones: List<Expresion>,
     var respuestaCorrecta: Expresion? = null
 ) : Pregunta(label)
 

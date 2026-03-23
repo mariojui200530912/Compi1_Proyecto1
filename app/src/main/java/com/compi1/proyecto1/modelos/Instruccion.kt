@@ -13,7 +13,7 @@ data class LlamadaDraw(val id: String, val argumentos: List<Expresion>) : Instru
 data class SentenciaIf(
     val condicion: Expresion,
     val bloqueTrue: List<Instruccion>,
-    val bloqueElseIf: List<SentenciaIf>? = null, // Para los anidados ELSE IF
+    val bloqueElseIf: List<SentenciaIf>? = null,
     val bloqueElse: List<Instruccion>? = null
 ) : Instruccion()
 
@@ -22,9 +22,9 @@ data class SentenciaDoWhile(val bloque: List<Instruccion>, val condicion: Expres
 
 // Para el FOR clásico y el FOR de rango (in ..)
 data class SentenciaFor(
-    val asignacionInicial: Instruccion, // ej: i = 0
-    val condicion: Expresion,           // ej: i <= 10
-    val actualizacion: Instruccion,     // ej: i = i + 1
+    val asignacionInicial: Instruccion,
+    val condicion: Expresion,
+    val actualizacion: Instruccion,
     val bloque: List<Instruccion>
 ) : Instruccion()
 

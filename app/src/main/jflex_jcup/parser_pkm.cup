@@ -86,7 +86,7 @@ componente ::= seccion:s {: RESULT = s; :}
              | pregunta_seleccion:p {: RESULT = p; :}
              | pregunta_multiple:p {: RESULT = p; :} ;
 
-/* --- SECCIÓN --- */
+/* --- SECCION --- */
 seccion ::= MENOR_QUE SECTION IGUAL NUMERO:w COMA NUMERO:h COMA NUMERO:x COMA NUMERO:y COMA orientacion:o MAYOR_QUE
             bloque_estilos:e
             MENOR_QUE CONTENT MAYOR_QUE

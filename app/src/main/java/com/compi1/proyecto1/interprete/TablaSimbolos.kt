@@ -1,15 +1,13 @@
 package com.compi1.proyecto1.interprete
 
-import com.compi1.proyecto1.modelos.ComponenteVisual // Para el tipo special
+import com.compi1.proyecto1.modelos.ComponenteVisual
 
 // Representa una variable guardada en memoria
 data class Simbolo(val tipo: String, var valor: Any)
 
 class TablaSimbolos {
-    // El mapa que guarda el nombre de la variable y su Símbolo
     private val variables = HashMap<String, Simbolo>()
 
-    // Lista para recolectar errores semánticos y mostrarlos en la UI
     val erroresSemanticos = mutableListOf<String>()
 
     fun declararVariable(tipo: String, nombre: String, valorInicial: Any?) {
@@ -22,8 +20,6 @@ class TablaSimbolos {
         val valorFinal = valorInicial ?: when (tipo) {
             "number" -> 0.0
             "string" -> ""
-            // El tipo special exige ser inicializado siempre según el manual,
-            // pero le ponemos null temporalmente por seguridad
             "special" -> null
             else -> null
         }
@@ -33,7 +29,6 @@ class TablaSimbolos {
             return
         }
 
-        // Validar que el valor coincida con el tipo
         if (!validarTipo(tipo, valorFinal!!)) {
             erroresSemanticos.add("Error: El valor asignado a '$nombre' no coincide con el tipo '$tipo'.")
             return
@@ -69,7 +64,7 @@ class TablaSimbolos {
         return when (tipoEsperado) {
             "number" -> valor is Double || valor is Int
             "string" -> valor is String
-            "special" -> valor is ComponenteVisual // Almacena preguntas
+            "special" -> valor is ComponenteVisual
             else -> false
         }
     }
