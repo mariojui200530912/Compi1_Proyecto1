@@ -1134,7 +1134,7 @@ public class LexerPKM implements java_cup.runtime.Scanner {
           // fall through
           case 59: break;
           case 20:
-            { return symbol(sym.TEXT, yytext());
+            { return symbol(sym_pkm.TEXT, yytext());
             }
           // fall through
           case 60: break;

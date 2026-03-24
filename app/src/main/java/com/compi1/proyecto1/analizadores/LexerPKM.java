@@ -5,7 +5,7 @@
 package com.compi1.proyecto1.analizadores;
 
 import java_cup.runtime.*;
-import com.compi1.proyecto1.interprete.ManejadorErrores; // Reutilizamos tu caja de errores
+import com.compi1.proyecto1.interprete.ManejadorErrores;
 
 
 @SuppressWarnings("fallthrough")

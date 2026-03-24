@@ -249,7 +249,7 @@ pregunta_desplegable ::= MENOR_QUE DROP IGUAL NUMERO:w COMA NUMERO:h COMA CADENA
                          :} ;
 
 /* --- PREGUNTA SELECCIÓN (<select=...>) --- */
-pregunta_seleccion ::= MENOR_QUE SELECT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA NUMERO:c BARRA MAYOR_QUE
+pregunta_seleccion ::= MENOR_QUE SELECT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_exp:ops LLAVE_DER COMA NUMERO:c BARRA MAYOR_QUE
                        {:
                            Expresion correct = null;
                            if(Double.parseDouble(c) != -1) correct = new Expresion.NumeroLiteral(Double.parseDouble(c));
@@ -258,7 +258,7 @@ pregunta_seleccion ::= MENOR_QUE SELECT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA
                            p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
                            RESULT = p;
                        :}
-                     | MENOR_QUE SELECT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA NUMERO:c MAYOR_QUE
+                     | MENOR_QUE SELECT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_exp:ops LLAVE_DER COMA NUMERO:c MAYOR_QUE
                        bloque_estilos:e
                        MENOR_QUE BARRA SELECT MAYOR_QUE
                        {:
@@ -270,7 +270,7 @@ pregunta_seleccion ::= MENOR_QUE SELECT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA
                            p.setEstilo(e);
                            RESULT = p;
                        :}
-                     | MENOR_QUE SELECT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA NUMERO:c MAYOR_QUE
+                     | MENOR_QUE SELECT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_exp:ops LLAVE_DER COMA NUMERO:c MAYOR_QUE
                        MENOR_QUE BARRA SELECT MAYOR_QUE
                        {:
                            Expresion correct = null;
@@ -282,22 +282,22 @@ pregunta_seleccion ::= MENOR_QUE SELECT IGUAL NUMERO:w COMA NUMERO:h COMA CADENA
                        :} ;
 
 /* --- 6. PREGUNTA MULTIPLE (<multiple=...>) --- */
-pregunta_multiple ::= MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA LLAVE_IZQ lista_numeros_exp:corrs LLAVE_DER BARRA MAYOR_QUE
+pregunta_multiple ::= MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_exp:ops LLAVE_DER COMA LLAVE_IZQ lista_numeros_exp:corrs LLAVE_DER BARRA MAYOR_QUE
                       {:
                           PreguntaMultiple p = new PreguntaMultiple(parser.revertirEmojis(lbl), ops, corrs);
                           p.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
                           p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
                           RESULT = p;
                       :}
-                    | MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA LLAVE_IZQ LLAVE_DER BARRA MAYOR_QUE
+                    | MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_exp:ops LLAVE_DER COMA LLAVE_IZQ LLAVE_DER BARRA MAYOR_QUE
                       {:
                           PreguntaMultiple p = new PreguntaMultiple(parser.revertirEmojis(lbl), ops, new ArrayList<Expresion>());
                           p.setWidth(new Expresion.NumeroLiteral(Double.parseDouble(w)));
                           p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
                           RESULT = p;
                       :}
-                    | MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA LLAVE_IZQ lista_numeros_exp:corrs LLAVE_DER MAYOR_QUE
-                      bloque_estilos:e
+                    | MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_exp:ops LLAVE_DER COMA LLAVE_IZQ lista_numeros_exp:corrs LLAVE_DER MAYOR_QUE
+                       bloque_estilos:e
                       MENOR_QUE BARRA MULTIPLE MAYOR_QUE
                       {:
                           PreguntaMultiple p = new PreguntaMultiple(parser.revertirEmojis(lbl), ops, corrs);
@@ -306,8 +306,8 @@ pregunta_multiple ::= MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADEN
                           p.setEstilo(e);
                           RESULT = p;
                       :}
-                    | MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA LLAVE_IZQ LLAVE_DER MAYOR_QUE
-                      bloque_estilos:e
+                    | MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_exp:ops LLAVE_DER COMA LLAVE_IZQ LLAVE_DER MAYOR_QUE
+                       bloque_estilos:e
                       MENOR_QUE BARRA MULTIPLE MAYOR_QUE
                       {:
                           PreguntaMultiple p = new PreguntaMultiple(parser.revertirEmojis(lbl), ops, new ArrayList<Expresion>());
@@ -316,7 +316,7 @@ pregunta_multiple ::= MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADEN
                           p.setEstilo(e);
                           RESULT = p;
                       :}
-                    | MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA LLAVE_IZQ lista_numeros_exp:corrs LLAVE_DER MAYOR_QUE
+                    | MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_exp:ops LLAVE_DER COMA LLAVE_IZQ lista_numeros_exp:corrs LLAVE_DER MAYOR_QUE
                       MENOR_QUE BARRA MULTIPLE MAYOR_QUE
                       {:
                           PreguntaMultiple p = new PreguntaMultiple(parser.revertirEmojis(lbl), ops, corrs);
@@ -324,7 +324,7 @@ pregunta_multiple ::= MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADEN
                           p.setHeight(new Expresion.NumeroLiteral(Double.parseDouble(h)));
                           RESULT = p;
                       :}
-                    | MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_str:ops LLAVE_DER COMA LLAVE_IZQ LLAVE_DER MAYOR_QUE
+                    | MENOR_QUE MULTIPLE IGUAL NUMERO:w COMA NUMERO:h COMA CADENA:lbl COMA LLAVE_IZQ lista_cadenas_exp:ops LLAVE_DER COMA LLAVE_IZQ LLAVE_DER MAYOR_QUE
                       MENOR_QUE BARRA MULTIPLE MAYOR_QUE
                       {:
                           PreguntaMultiple p = new PreguntaMultiple(parser.revertirEmojis(lbl), ops, new ArrayList<Expresion>());

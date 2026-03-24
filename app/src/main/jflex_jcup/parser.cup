@@ -398,7 +398,7 @@ pregunta_seleccion ::= SELECT_QUESTION:sq CORCHETE_IZQ lista_atributos_pregunta:
 
     List<Expresion> opcExp = mapa.containsKey("options") ? (List<Expresion>) mapa.get("options") : new ArrayList<>();
 
-    if(opcionesStr.size() > 5) {
+    if(opcExp.size() > 5) {
             ManejadorErrores.agregarError("options", sqleft, sqright, "Semántico", "La pregunta de selección no debe tener más de 5 opciones.");
     }
 
