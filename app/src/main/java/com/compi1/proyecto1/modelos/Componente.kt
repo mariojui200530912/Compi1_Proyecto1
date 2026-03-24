@@ -45,12 +45,12 @@ class PreguntaDesplegable(
 
 class PreguntaSeleccion(
     label: String,
-    var opciones: List<String>,
+    val opciones: List<Expresion>,
     var respuestaCorrecta: Expresion? = null
 ) : Pregunta(label)
 
 class PreguntaMultiple(
     label: String,
-    var opciones: List<String>,
+    val opciones: List<Expresion>,
     var respuestasCorrectas: List<Expresion> = emptyList()
 ) : Pregunta(label)

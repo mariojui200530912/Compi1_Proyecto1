@@ -150,7 +150,7 @@ class ExportadorPKM(private val evaluador: Evaluador) {
             is PreguntaSeleccion -> {
                 totalPreguntas++; seleccion++
                 val lbl = revertirEmojis(comp.label)
-                val ops = "{" + comp.opciones.joinToString(",") { "\"$it\"" } + "}"
+                val ops = formatOpciones(comp.opciones)
                 val corr = eval(comp.respuestaCorrecta) ?: -1
 
                 if (estilos.isEmpty()) {
@@ -165,7 +165,7 @@ class ExportadorPKM(private val evaluador: Evaluador) {
             is PreguntaMultiple -> {
                 totalPreguntas++; multiples++
                 val lbl = revertirEmojis(comp.label)
-                val ops = "{" + comp.opciones.joinToString(",") { "\"$it\"" } + "}"
+                val ops = formatOpciones(comp.opciones)
 
                 val corrList = comp.respuestasCorrectas.mapNotNull { eval(it) }
                 val corrFormat = if (corrList.isEmpty()) "{}" else "{" + corrList.joinToString(",") + "}"

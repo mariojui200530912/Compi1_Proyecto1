@@ -114,20 +114,65 @@ class GeneradorVistas(
             setTypeface(null, Typeface.BOLD)
         }
 
-        if (pregunta.opciones.size > 5) {
-            AlertDialog.Builder(context)
-                .setTitle("Advertencia")
-                .setMessage("La pregunta '${pregunta.label}' tiene ${pregunta.opciones.size} opciones. Se recomienda un máximo de 5.")
-                .setPositiveButton("Entendido", null)
-                .show()
-        }
-
         val radioGroup = RadioGroup(context)
+        val primeraOpcion = pregunta.opciones.firstOrNull()
 
-        for (opcion in pregunta.opciones) {
-            val radioButton = RadioButton(context).apply { text = opcion }
-            aplicarEstilosHijos(radioButton, pregunta.estilo)
-            radioGroup.addView(radioButton)
+        if (primeraOpcion is Expresion.LlamadaPokemon) {
+            val inicio = (evaluador.evaluar(primeraOpcion.rangoInicio) as? Double)?.toInt() ?: 1
+            val fin = (evaluador.evaluar(primeraOpcion.rangoFin) as? Double)?.toInt() ?: 10
+
+            // Advertencia si pide más de 5 (Solo para PokeAPI)
+            if ((fin - inicio + 1) > 5) {
+                AlertDialog.Builder(context)
+                    .setTitle("Advertencia")
+                    .setMessage("La pregunta '${pregunta.label}' cargará ${fin - inicio + 1} Pokémon. Se recomienda un máximo de 5.")
+                    .setPositiveButton("Entendido", null)
+                    .show()
+            }
+
+            // Vista temporal de carga
+            val loadingRadio = RadioButton(context).apply { text = "Cargando Pokémon..." }
+            radioGroup.addView(loadingRadio)
+
+            CoroutineScope(Dispatchers.IO).launch {
+                val listaNombres = mutableListOf<String>()
+                try {
+                    for (id in inicio..fin) {
+                        val url = "https://pokeapi.co/api/v2/pokemon/$id"
+                        val jsonString = URL(url).readText()
+                        val jsonObject = Gson().fromJson(jsonString, JsonObject::class.java)
+                        val nombre = jsonObject.get("name").asString
+                        listaNombres.add(nombre.replaceFirstChar { it.uppercase() })
+                    }
+                    withContext(Dispatchers.Main) {
+                        radioGroup.removeAllViews() // Quitamos el mensaje de carga
+                        for (nombre in listaNombres) {
+                            val rb = RadioButton(context).apply { text = nombre }
+                            aplicarEstilosHijos(rb, pregunta.estilo)
+                            radioGroup.addView(rb)
+                        }
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        loadingRadio.text = "Error de conexión"
+                    }
+                }
+            }
+        } else {
+            // Lógica normal si NO es PokeAPI y su advertencia única
+            if (pregunta.opciones.size > 5) {
+                AlertDialog.Builder(context)
+                    .setTitle("Advertencia")
+                    .setMessage("La pregunta '${pregunta.label}' tiene ${pregunta.opciones.size} opciones. Se recomienda un máximo de 5.")
+                    .setPositiveButton("Entendido", null)
+                    .show()
+            }
+            for (opcion in pregunta.opciones) {
+                val txt = evaluador.evaluar(opcion)?.toString() ?: ""
+                val radioButton = RadioButton(context).apply { text = txt }
+                aplicarEstilosHijos(radioButton, pregunta.estilo)
+                radioGroup.addView(radioButton)
+            }
         }
 
         val indiceCorrecto = pregunta.respuestaCorrecta?.let { (evaluador.evaluar(it) as? Double)?.toInt() }
@@ -175,11 +220,48 @@ class GeneradorVistas(
         }
 
         val checkContenedor = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        val primeraOpcion = pregunta.opciones.firstOrNull()
 
-        for (opcion in pregunta.opciones) {
-            val checkBox = CheckBox(context).apply { text = opcion }
-            aplicarEstilosHijos(checkBox, pregunta.estilo)
-            checkContenedor.addView(checkBox)
+        if (primeraOpcion is Expresion.LlamadaPokemon) {
+            val inicio = (evaluador.evaluar(primeraOpcion.rangoInicio) as? Double)?.toInt() ?: 1
+            val fin = (evaluador.evaluar(primeraOpcion.rangoFin) as? Double)?.toInt() ?: 10
+
+            // Vista temporal de carga
+            val loadingCheck = CheckBox(context).apply { text = "Cargando Pokémon..." }
+            checkContenedor.addView(loadingCheck)
+
+            CoroutineScope(Dispatchers.IO).launch {
+                val listaNombres = mutableListOf<String>()
+                try {
+                    for (id in inicio..fin) {
+                        val url = "https://pokeapi.co/api/v2/pokemon/$id"
+                        val jsonString = URL(url).readText()
+                        val jsonObject = Gson().fromJson(jsonString, JsonObject::class.java)
+                        val nombre = jsonObject.get("name").asString
+                        listaNombres.add(nombre.replaceFirstChar { it.uppercase() })
+                    }
+                    withContext(Dispatchers.Main) {
+                        checkContenedor.removeAllViews()
+                        for (nombre in listaNombres) {
+                            val cb = CheckBox(context).apply { text = nombre }
+                            aplicarEstilosHijos(cb, pregunta.estilo)
+                            checkContenedor.addView(cb)
+                        }
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        loadingCheck.text = "Error de conexión"
+                    }
+                }
+            }
+        } else {
+            // Lógica normal si NO es PokeAPI
+            for (opcion in pregunta.opciones) {
+                val txt = evaluador.evaluar(opcion)?.toString() ?: ""
+                val checkBox = CheckBox(context).apply { text = txt }
+                aplicarEstilosHijos(checkBox, pregunta.estilo)
+                checkContenedor.addView(checkBox)
+            }
         }
 
         val indicesCorrectos = pregunta.respuestasCorrectas.mapNotNull {

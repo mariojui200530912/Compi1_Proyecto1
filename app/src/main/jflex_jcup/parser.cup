@@ -397,16 +397,12 @@ pregunta_seleccion ::= SELECT_QUESTION:sq CORCHETE_IZQ lista_atributos_pregunta:
     String lbl = mapa.containsKey("label") ? (String) mapa.get("label") : "";
 
     List<Expresion> opcExp = mapa.containsKey("options") ? (List<Expresion>) mapa.get("options") : new ArrayList<>();
-    List<String> opcionesStr = new ArrayList<>();
-    for(Expresion e : opcExp) {
-        if(e instanceof Expresion.CadenaLiteral) opcionesStr.add(((Expresion.CadenaLiteral)e).getValor());
-    }
 
     if(opcionesStr.size() > 5) {
             ManejadorErrores.agregarError("options", sqleft, sqright, "Semántico", "La pregunta de selección no debe tener más de 5 opciones.");
     }
 
-    PreguntaSeleccion p = new PreguntaSeleccion(lbl, opcionesStr, null);
+    PreguntaSeleccion p = new PreguntaSeleccion(lbl, opcExp, null);
 
     if(mapa.containsKey("correct")) p.setRespuestaCorrecta((Expresion) mapa.get("correct"));
     if(mapa.containsKey("width")) p.setWidth((Expresion) mapa.get("width"));
@@ -421,12 +417,8 @@ pregunta_multiple ::= MULTIPLE_QUESTION CORCHETE_IZQ lista_atributos_pregunta:ma
     String lbl = mapa.containsKey("label") ? (String) mapa.get("label") : "";
 
     List<Expresion> opcExp = mapa.containsKey("options") ? (List<Expresion>) mapa.get("options") : new ArrayList<>();
-    List<String> opcionesStr = new ArrayList<>();
-    for(Expresion e : opcExp) {
-        if(e instanceof Expresion.CadenaLiteral) opcionesStr.add(((Expresion.CadenaLiteral)e).getValor());
-    }
 
-    PreguntaMultiple p = new PreguntaMultiple(lbl, opcionesStr, new ArrayList<>());
+    PreguntaMultiple p = new PreguntaMultiple(lbl, opcExp, new ArrayList<>());
 
     // El 'correct' en MULTIPLE es una lista de números
     if(mapa.containsKey("correct")) {
